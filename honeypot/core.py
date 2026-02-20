@@ -39,7 +39,7 @@ SERVICE_MAP = {
 
 
 class HoneypotOrchestrator:
-    def __init__(self, config: HoneypotConfig, on_service_started=None, on_service_failed=None):
+    def __init__(self, config: HoneypotConfig, on_service_started=None, on_service_failed=None, display_host=None):
         self.config = config
         self.db = Database(config.database_path)
         self.geo = GeoLocator(self.db)
@@ -49,6 +49,7 @@ class HoneypotOrchestrator:
         self._shutdown_event = asyncio.Event()
         self._on_started = on_service_started
         self._on_failed = on_service_failed
+        self._display_host = display_host
 
     def _notify_started(self, msg: str):
         if self._on_started:
@@ -87,7 +88,8 @@ class HoneypotOrchestrator:
             self.dashboard = DashboardServer(self.db, self.geo, self.config.dashboard, orchestrator=self)
             try:
                 await self.dashboard.start()
-                dash_url = f"http://{self.config.dashboard.host}:{self.config.dashboard.port}"
+                host = self._display_host or self.config.dashboard.host
+                dash_url = f"http://{host}:{self.config.dashboard.port}"
                 self._notify_started(f"Dashboard  {dash_url}")
             except OSError as e:
                 self._notify_failed("Dashboard", str(e))
@@ -95,11 +97,11 @@ class HoneypotOrchestrator:
         # Print summary
         if self._on_started:
             import sys
-            print()
+            print(flush=True)
             token = self.config.dashboard.auth_token
             if token:
-                print(f"  \033[1mAuth Token \033[33m{token}\033[0m")
-            print(f"\n  \033[1m\033[32m{len(self.services)} services active\033[0m — press Ctrl+C to stop\n")
+                print(f"  \033[1mAuth Token \033[33m{token}\033[0m", flush=True)
+            print(f"\n  \033[1m\033[32m{len(self.services)} services active\033[0m — press Ctrl+C to stop\n", flush=True)
 
         # Setup signal handlers
         loop = asyncio.get_event_loop()
@@ -109,10 +111,11 @@ class HoneypotOrchestrator:
             except NotImplementedError:
                 pass  # Windows
 
+        dash_host = self._display_host or self.config.dashboard.host
         logger.info(
             "Honeypot running — %d services active, dashboard %s",
             len(self.services),
-            f"at http://{self.config.dashboard.host}:{self.config.dashboard.port}" if self.config.dashboard.enabled else "disabled",
+            f"at http://{dash_host}:{self.config.dashboard.port}" if self.config.dashboard.enabled else "disabled",
         )
 
     def get_config_dict(self) -> dict:

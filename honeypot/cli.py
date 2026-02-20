@@ -5,6 +5,7 @@ import asyncio
 import logging
 import os
 import secrets
+import socket
 import sys
 import time
 
@@ -12,30 +13,16 @@ from . import __version__
 from .config import HoneypotConfig, load_config
 from .core import HoneypotOrchestrator
 
-BANNER = r"""
-{g}
-                  \  /
-                   \/
-                   /\
-                  /  \
-            ----./    \.----
-           /    / \  / \    \
-          /    /   \/   \    \
-               |   /\   |
-               |  /  \  |
-               | /    \ |
-               |/      \|
-{r}
-    ███╗   ███╗ █████╗ ███╗   ██╗████████╗██╗███████╗
+BANNER = """
+    \033[33m███╗   ███╗ █████╗ ███╗   ██╗████████╗██╗███████╗
     ████╗ ████║██╔══██╗████╗  ██║╚══██╔══╝██║██╔════╝
     ██╔████╔██║███████║██╔██╗ ██║   ██║   ██║███████╗
     ██║╚██╔╝██║██╔══██║██║╚██╗██║   ██║   ██║╚════██║
     ██║ ╚═╝ ██║██║  ██║██║ ╚████║   ██║   ██║███████║
-    ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝   ╚═╝╚══════╝
-{d}
-    Network Threat Intelligence       v{version}
-    Watch. Wait. Capture.
-""".format(g="\033[33m", r="\033[0m", d="\033[2m", version="{version}") + "\033[0m"
+    ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝   ╚═╝╚══════╝\033[0m
+\033[2m    Network Threat Intelligence       v{version}
+    Watch. Wait. Capture.\033[0m
+"""
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -188,22 +175,14 @@ BOLD = "\033[1m"
 GREEN = "\033[32m"
 RED = "\033[31m"
 YELLOW = "\033[33m"
-CYAN = "\033[36m"
 RESET = "\033[0m"
 CHECK = f"{GREEN}\u2714{RESET}"
 CROSS = f"{RED}\u2718{RESET}"
-SPINNER_CHARS = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
 
 
-def _spin_print(msg: str, duration: float = 0.4):
-    """Show a brief spinner then resolve to a check mark."""
-    steps = max(1, int(duration / 0.05))
-    for i in range(steps):
-        c = SPINNER_CHARS[i % len(SPINNER_CHARS)]
-        sys.stdout.write(f"\r  {CYAN}{c}{RESET} {msg}")
-        sys.stdout.flush()
-        time.sleep(0.05)
-    sys.stdout.write(f"\r  {CHECK} {msg}\n")
+def _spin_print(msg: str, duration: float = 0.0):
+    """Print a check mark for a completed step."""
+    sys.stdout.write(f"  {CHECK} {msg}\n")
     sys.stdout.flush()
 
 
@@ -211,6 +190,18 @@ def _spin_fail(msg: str, detail: str = ""):
     suffix = f"  {DIM}{detail}{RESET}" if detail else ""
     sys.stdout.write(f"\r  {CROSS} {msg}{suffix}\n")
     sys.stdout.flush()
+
+
+def _get_local_ip() -> str:
+    """Get the primary local IP address of this machine."""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
 
 
 def _kill_stale_ports(config: HoneypotConfig):
@@ -279,7 +270,8 @@ def main():
     # Animated service startup
     print(f"  {BOLD}Starting services...{RESET}\n")
 
-    orchestrator = HoneypotOrchestrator(config, on_service_started=_spin_print, on_service_failed=_spin_fail)
+    display_host = _get_local_ip() if config.dashboard.host == "0.0.0.0" else config.dashboard.host
+    orchestrator = HoneypotOrchestrator(config, on_service_started=_spin_print, on_service_failed=_spin_fail, display_host=display_host)
     try:
         asyncio.run(orchestrator.run())
     except KeyboardInterrupt:
