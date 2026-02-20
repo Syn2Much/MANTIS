@@ -20,6 +20,24 @@ Built entirely in Python with asyncio for high concurrency and zero threads per 
 - **SQLite storage** with full-text search, JSON export, and database management
 - **Zero external dependencies** for service emulation (pure Python protocol implementations)
 
+---
+## Supported Services
+
+| Service | Default Port | Protocol Detail |
+|---------|-------------|-----------------|
+| **SSH** | 2222 | Full Paramiko-based SSH server with shell emulation, command logging, and credential capture |
+| **HTTP** | 8080 | Login page honeypot — captures GET/POST requests, form credentials, and user agents |
+| **FTP** | 21 | RFC 959 implementation with USER/PASS capture, fake directory listings, and file transfer logging |
+| **SMB** | 4450 | SMB1/SMB2 negotiate + NTLM authentication capture with session setup |
+| **MySQL** | 3306 | Full handshake (v10 protocol), authentication, and COM_QUERY logging |
+| **Telnet** | 23 | Interactive shell with login prompt, command history, and fake filesystem responses |
+| **SMTP** | 25 | RFC 5321 with EHLO, AUTH LOGIN/PLAIN (base64 credential decode), MAIL FROM/RCPT TO/DATA capture |
+| **MongoDB** | 27017 | OP_QUERY + OP_MSG wire protocol, custom BSON codec, isMaster/saslStart auth, listDatabases |
+| **VNC** | 5900 | RFB 3.8 handshake, VNC Auth (DES challenge/response capture), ServerInit with fake framebuffer |
+| **Redis** | 6379 | RESP protocol parser, AUTH capture, INFO/KEYS/GET with fake sensitive data, threat detection for CONFIG SET/SLAVEOF/MODULE LOAD |
+| **ADB** | 5555 | Android Debug Bridge binary protocol (CNXN/OPEN/WRTE/CLSE), fake Pixel 7 device, shell command responses |
+
+---
 
 ## Screenshots
 
