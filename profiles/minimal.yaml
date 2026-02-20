@@ -1,0 +1,42 @@
+# Minimal profile: SSH + HTTP only
+ssh:
+  enabled: true
+  port: 2222
+
+http:
+  enabled: true
+  port: 8080
+
+ftp:
+  enabled: false
+
+smb:
+  enabled: false
+
+mysql:
+  enabled: false
+
+telnet:
+  enabled: false
+
+smtp:
+  enabled: false
+
+mongodb:
+  enabled: false
+
+vnc:
+  enabled: false
+
+redis:
+  enabled: false
+
+adb:
+  enabled: false
+
+dashboard:
+  enabled: true
+  port: 8843
+
+alerts:
+  enabled: true
