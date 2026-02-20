@@ -9,6 +9,8 @@ import socket
 import sys
 import time
 
+import questionary
+
 from . import __version__
 from .config import HoneypotConfig, load_config
 from .core import HoneypotOrchestrator
@@ -24,107 +26,61 @@ BANNER = """
     Watch. Wait. Capture.\033[0m
 """
 
-
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="MANTIS - Network Threat Intelligence",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument("--version", action="version", version=f"honeypot {__version__}")
-
-    sub = parser.add_subparsers(dest="command")
-
-    # Run (default)
-    run_parser = sub.add_parser("run", help="Start the honeypot (default)")
-    _add_run_args(run_parser)
-
-    # Also add run args to main parser for default behavior
-    _add_run_args(parser)
-
-    # Stats subcommand
-    stats_parser = sub.add_parser("stats", help="Show captured statistics")
-    stats_parser.add_argument("--db", default="honeypot.db", help="Database path")
-
-    return parser
+ALL_SERVICES = [
+    ("ssh", 2222), ("http", 8080), ("ftp", 21), ("smb", 4450),
+    ("mysql", 3306), ("telnet", 2323), ("smtp", 25),
+    ("mongodb", 27017), ("vnc", 5900), ("redis", 6379), ("adb", 5555),
+]
 
 
-def _add_run_args(parser):
-    parser.add_argument("-c", "--config", help="YAML config file path")
-    parser.add_argument("-p", "--profile", help="Profile YAML (from profiles/ directory)")
-    parser.add_argument("--port-ssh", type=int, help="SSH port override")
-    parser.add_argument("--port-http", type=int, help="HTTP port override")
-    parser.add_argument("--port-ftp", type=int, help="FTP port override")
-    parser.add_argument("--port-smb", type=int, help="SMB port override")
-    parser.add_argument("--port-mysql", type=int, help="MySQL port override")
-    parser.add_argument("--port-telnet", type=int, help="Telnet port override")
-    parser.add_argument("--port-smtp", type=int, help="SMTP port override")
-    parser.add_argument("--port-mongodb", type=int, help="MongoDB port override")
-    parser.add_argument("--port-vnc", type=int, help="VNC port override")
-    parser.add_argument("--port-redis", type=int, help="Redis port override")
-    parser.add_argument("--port-adb", type=int, help="ADB port override")
-    parser.add_argument("--port-dashboard", type=int, help="Dashboard port override")
-    parser.add_argument("--services", help="Comma-separated list of services to enable")
-    parser.add_argument("--webhook", help="Webhook URL for alerts")
-    parser.add_argument("--db", default=None, help="Database file path")
-    parser.add_argument("--auth-token", help="Auth token to protect the dashboard")
-    parser.add_argument("-v", "--verbose", action="store_true", help="Verbose logging")
-    parser.add_argument("-q", "--quiet", action="store_true", help="Quiet mode (errors only)")
+def _interactive_setup() -> HoneypotConfig:
+    """Run interactive questionary prompts to build config."""
+    config = HoneypotConfig()
 
+    # 1. Checkbox: pick services
+    choices = [
+        questionary.Choice(f"{name.upper():8s}  port {port}", value=name, checked=True)
+        for name, port in ALL_SERVICES
+    ]
+    selected = questionary.checkbox(
+        "Select honeypot services", choices=choices
+    ).ask()
 
-def _resolve_config(args) -> HoneypotConfig:
-    """Resolve config from file/profile + CLI overrides."""
-    config_path = None
-    if args.config:
-        config_path = args.config
-    elif args.profile:
-        # Look for profile in profiles/ directory
-        profile_path = args.profile
-        if not os.path.exists(profile_path):
-            profile_path = os.path.join("profiles", args.profile)
-        if not os.path.exists(profile_path):
-            profile_path = os.path.join("profiles", f"{args.profile}.yaml")
-        if os.path.exists(profile_path):
-            config_path = profile_path
+    if selected is None:
+        # User cancelled (Ctrl-C during prompt)
+        sys.exit(0)
 
-    config = load_config(config_path)
+    # Disable unselected services
+    for name, _ in ALL_SERVICES:
+        getattr(config, name).enabled = name in selected
 
-    # CLI overrides
-    port_map = {
-        "port_ssh": "ssh",
-        "port_http": "http",
-        "port_ftp": "ftp",
-        "port_smb": "smb",
-        "port_mysql": "mysql",
-        "port_telnet": "telnet",
-        "port_smtp": "smtp",
-        "port_mongodb": "mongodb",
-        "port_vnc": "vnc",
-        "port_redis": "redis",
-        "port_adb": "adb",
-    }
-    for arg_name, svc_name in port_map.items():
-        val = getattr(args, arg_name, None)
-        if val is not None:
-            getattr(config, svc_name).port = val
+    # 2. Configure ports?
+    custom_ports = questionary.confirm("Configure custom ports?", default=False).ask()
+    if custom_ports is None:
+        sys.exit(0)
 
-    if getattr(args, "port_dashboard", None):
-        config.dashboard.port = args.port_dashboard
+    if custom_ports:
+        for name in selected:
+            cfg = config.get_service_config(name)
+            val = questionary.text(
+                f"  {name.upper()} port", default=str(cfg.port)
+            ).ask()
+            if val is None:
+                sys.exit(0)
+            cfg.port = int(val)
 
-    if args.services:
-        enabled = set(s.strip().lower() for s in args.services.split(","))
-        for svc in ("ssh", "http", "ftp", "smb", "mysql", "telnet", "smtp", "mongodb", "vnc", "redis", "adb"):
-            getattr(config, svc).enabled = svc in enabled
+        val = questionary.text(
+            "  Dashboard port", default=str(config.dashboard.port)
+        ).ask()
+        if val is None:
+            sys.exit(0)
+        config.dashboard.port = int(val)
 
-    if args.webhook:
-        config.alerts.webhook_url = args.webhook
-
-    if getattr(args, "db", None):
-        config.database_path = args.db
-
-    # Auth token: use provided, or generate one
-    token = getattr(args, "auth_token", None)
-    if not token:
-        token = secrets.token_urlsafe(24)
+    # 3. Auth token
+    default_token = secrets.token_urlsafe(24)
+    token = questionary.text("Auth token", default=default_token).ask()
+    if token is None:
+        sys.exit(0)
     config.dashboard.auth_token = token
 
     return config
@@ -252,20 +208,45 @@ def _kill_stale_ports(config: HoneypotConfig):
 
 
 def main():
-    parser = build_parser()
+    parser = argparse.ArgumentParser(
+        description="MANTIS - Network Threat Intelligence",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("--version", action="version", version=f"honeypot {__version__}")
+    parser.add_argument("--headless", action="store_true", help="Non-interactive mode (all defaults)")
+    parser.add_argument("-c", "--config", help="YAML config file path")
+    parser.add_argument("--db", default=None, help="Database file path")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Verbose logging")
+    parser.add_argument("-q", "--quiet", action="store_true", help="Quiet mode (errors only)")
+
+    sub = parser.add_subparsers(dest="command")
+    stats_parser = sub.add_parser("stats", help="Show captured statistics")
+    stats_parser.add_argument("--db", default="honeypot.db", help="Database path")
+
     args = parser.parse_args()
 
     if args.command == "stats":
         asyncio.run(_run_stats(args))
         return
 
-    _setup_logging(args)
-    config = _resolve_config(args)
-
     print(BANNER.format(version=__version__))
+    _setup_logging(args)
+
+    if args.headless or args.config:
+        # Non-interactive: load from YAML or use defaults
+        config = load_config(args.config)
+        if args.db:
+            config.database_path = args.db
+        if not config.dashboard.auth_token:
+            config.dashboard.auth_token = secrets.token_urlsafe(24)
+    else:
+        # Interactive setup
+        config = _interactive_setup()
+        if args.db:
+            config.database_path = args.db
 
     # Kill any stale processes holding our ports
-    print(f"  {DIM}Opening ports for honeypot services...{RESET}", flush=True)
+    print(f"\n  {DIM}Opening ports for honeypot services...{RESET}", flush=True)
     _kill_stale_ports(config)
     print()
 

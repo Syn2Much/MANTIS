@@ -77,6 +77,7 @@ class Database:
         self._subscribers: list[asyncio.Queue] = []
         self._alert_subscribers: list[asyncio.Queue] = []
         self._loop: Optional[asyncio.AbstractEventLoop] = None
+        self._closed = False
 
     def _get_conn(self) -> sqlite3.Connection:
         if self._conn is None:
@@ -145,6 +146,8 @@ class Database:
         conn.commit()
 
     async def save_session(self, session: Session):
+        if self._closed:
+            return
         await self._loop.run_in_executor(self._executor, self._insert_session, session)
 
     def _insert_event(self, event: Event) -> Event:
@@ -160,6 +163,8 @@ class Database:
         return event
 
     async def save_event(self, event: Event) -> Event:
+        if self._closed:
+            return event
         event = await self._loop.run_in_executor(self._executor, self._insert_event, event)
         self._notify_event(event)
         return event
@@ -177,6 +182,8 @@ class Database:
         return alert
 
     async def save_alert(self, alert: Alert) -> Alert:
+        if self._closed:
+            return alert
         alert = await self._loop.run_in_executor(self._executor, self._insert_alert, alert)
         self._notify_alert(alert)
         return alert
@@ -461,6 +468,7 @@ class Database:
         logger.info("Database reset — all data cleared")
 
     async def close(self):
+        self._closed = True
         if self._conn:
             self._conn.close()
             self._conn = None

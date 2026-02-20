@@ -90,33 +90,35 @@ git clone https://github.com/Syn2Much/MANTIS.git && cd MANTIS
 pip install -r requirements.txt
 ```
 
-### Run
+### Run (Interactive)
 
 ```bash
-# Default profile — all 11 services
 python main.py
-
-# With a specific profile
-python main.py --profile profiles/default.yaml
-
-# Minimal (SSH + HTTP only)
-python main.py --profile minimal
-
-# Database trap (MySQL + MongoDB + Redis + FTP + SMB)
-python main.py --profile database_trap
 ```
+
+This launches an interactive setup where you:
+
+1. **Select services** — checkbox list of all 11 honeypots (spacebar to toggle, Enter to confirm)
+2. **Configure ports** — optionally set custom ports for each selected service and the dashboard
+3. **Set auth token** — accept the auto-generated token or type your own
 
 The dashboard starts at **<http://localhost:8843>** by default.
 
-### Dashboard Authentication
+### Run (Headless)
 
-Protect the dashboard with an auth token:
+For scripts, systemd, Docker, or CI — skip all prompts:
 
 ```bash
-python main.py --auth-token YOUR_SECRET_TOKEN
+# All defaults, no prompts
+python main.py --headless
+
+# Load from YAML config, no prompts
+python main.py --headless --config profiles/default.yaml
 ```
 
-When set, all dashboard routes require authentication. The login page will prompt for the token. API requests can authenticate via:
+### Dashboard Authentication
+
+An auth token is always set — either auto-generated or entered during interactive setup. All dashboard routes require authentication. The login page will prompt for the token. API requests can authenticate via:
 
 - **Cookie** — set automatically after login
 - **Bearer token** — `Authorization: Bearer YOUR_SECRET_TOKEN`
@@ -125,26 +127,11 @@ When set, all dashboard routes require authentication. The login page will promp
 ### CLI Options
 
 ```
-python main.py run [options]
+python main.py [options]
 
 Options:
+  --headless               Non-interactive mode (all defaults)
   -c, --config FILE        YAML config file path
-  -p, --profile NAME       Profile from profiles/ directory
-  --port-ssh PORT          SSH port override
-  --port-http PORT         HTTP port override
-  --port-ftp PORT          FTP port override
-  --port-smb PORT          SMB port override
-  --port-mysql PORT        MySQL port override
-  --port-telnet PORT       Telnet port override
-  --port-smtp PORT         SMTP port override
-  --port-mongodb PORT      MongoDB port override
-  --port-vnc PORT          VNC port override
-  --port-redis PORT        Redis port override
-  --port-adb PORT          ADB port override
-  --port-dashboard PORT    Dashboard port override
-  --services LIST          Comma-separated services to enable
-  --webhook URL            Webhook URL for alerts
-  --auth-token TOKEN       Auth token to protect the dashboard
   --db PATH                Database file path
   -v, --verbose            Debug logging
   -q, --quiet              Errors only
@@ -279,7 +266,7 @@ main.py                  # Entry point
 honeypot/
 ├── __init__.py          # Package metadata
 ├── __main__.py          # Module entry point
-├── cli.py               # CLI parser, config resolution, banner
+├── cli.py               # Interactive CLI (questionary), headless mode, banner
 ├── config.py            # YAML config loading, ServiceConfig dataclass
 ├── core.py              # HoneypotOrchestrator — starts all services
 ├── database.py          # Async SQLite with pub/sub for WebSocket
