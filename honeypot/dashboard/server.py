@@ -9,7 +9,7 @@ import weakref
 
 from aiohttp import web
 
-from .templates import DASHBOARD_HTML
+from .templates import DASHBOARD_HTML, LOGIN_HTML
 
 logger = logging.getLogger("honeypot.dashboard")
 
@@ -29,8 +29,15 @@ class DashboardServer:
 
         self._blocked_ips: set[str] = set()
         self._has_iptables = shutil.which("iptables") is not None
+        self._auth_token = getattr(config, "auth_token", None)
+
+        # Auth middleware — if token is set, protect all routes
+        if self._auth_token:
+            self._app.middlewares.append(self._auth_middleware)
 
         self._app.router.add_get("/", self._handle_dashboard)
+        self._app.router.add_get("/login", self._handle_login)
+        self._app.router.add_post("/api/auth", self._handle_auth)
         self._app.router.add_get("/ws", self._handle_ws)
         self._app.router.add_get("/api/stats", self._handle_stats)
         self._app.router.add_get("/api/events", self._handle_events)
@@ -112,6 +119,48 @@ class DashboardServer:
                         dead.append(ws)
                 for ws in dead:
                     self._websockets.discard(ws)
+
+    @web.middleware
+    async def _auth_middleware(self, request: web.Request, handler):
+        # Allow login page and auth endpoint without token
+        if request.path in ("/login", "/api/auth"):
+            return await handler(request)
+        # Check cookie or Authorization header
+        token = request.cookies.get("mantis_token")
+        if not token:
+            auth_header = request.headers.get("Authorization", "")
+            if auth_header.startswith("Bearer "):
+                token = auth_header[7:]
+        if token == self._auth_token:
+            return await handler(request)
+        # WebSocket — check token in query string
+        if request.path == "/ws":
+            token = request.query.get("token")
+            if token == self._auth_token:
+                return await handler(request)
+        # Redirect HTML requests to login, reject API with 401
+        if request.path.startswith("/api") or request.path == "/ws":
+            return web.json_response({"error": "unauthorized"}, status=401)
+        raise web.HTTPFound("/login")
+
+    async def _handle_login(self, request: web.Request) -> web.Response:
+        if not self._auth_token:
+            raise web.HTTPFound("/")
+        return web.Response(text=LOGIN_HTML, content_type="text/html")
+
+    async def _handle_auth(self, request: web.Request) -> web.Response:
+        if not self._auth_token:
+            return web.json_response({"status": "ok"})
+        try:
+            body = await request.json()
+        except Exception:
+            return web.json_response({"error": "invalid JSON"}, status=400)
+        token = body.get("token", "")
+        if token == self._auth_token:
+            resp = web.json_response({"status": "ok"})
+            resp.set_cookie("mantis_token", token, httponly=True, samesite="Strict", max_age=86400 * 7)
+            return resp
+        return web.json_response({"error": "invalid token"}, status=403)
 
     async def _handle_dashboard(self, request: web.Request) -> web.Response:
         return web.Response(text=DASHBOARD_HTML, content_type="text/html")

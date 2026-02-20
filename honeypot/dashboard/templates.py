@@ -1,5 +1,57 @@
 """Embedded HTML/CSS/JS dashboard with multi-tab layout, modals, and live config editing."""
 
+LOGIN_HTML = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MANTIS // Login</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>🪲</text></svg>">
+<style>
+:root { --bg: #0c0c0c; --card: #161616; --border: #2a2a2a; --text: #e8e0d0; --dim: #8a7e6a; --accent: #f59e0b; --red: #ef4444; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'SF Mono','Fira Code','Consolas',monospace; background:var(--bg); color:var(--text); display:flex; align-items:center; justify-content:center; min-height:100vh; }
+.login-box { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:40px; width:380px; text-align:center; }
+.login-box h1 { color:var(--accent); font-size:24px; font-weight:800; letter-spacing:3px; margin-bottom:6px; }
+.login-box .sub { color:var(--dim); font-size:11px; margin-bottom:28px; }
+.login-box input { width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:12px 16px; border-radius:6px; font-family:inherit; font-size:14px; margin-bottom:16px; text-align:center; }
+.login-box input:focus { outline:none; border-color:var(--accent); }
+.login-box button { width:100%; background:var(--accent); color:#0c0c0c; border:none; padding:12px; border-radius:6px; font-family:inherit; font-size:14px; font-weight:700; cursor:pointer; }
+.login-box button:hover { background:#fbbf24; }
+.error { color:var(--red); font-size:12px; margin-bottom:12px; display:none; }
+</style>
+</head>
+<body>
+<div class="login-box">
+    <h1>MANTIS</h1>
+    <div class="sub">// threat intelligence</div>
+    <div class="error" id="err">Invalid token</div>
+    <input type="password" id="token" placeholder="Enter auth token" autofocus>
+    <button onclick="doLogin()">Authenticate</button>
+</div>
+<script>
+document.getElementById('token').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+async function doLogin() {
+    const token = document.getElementById('token').value;
+    const err = document.getElementById('err');
+    err.style.display = 'none';
+    try {
+        const r = await fetch('/api/auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token }),
+        });
+        if (r.ok) {
+            window.location.href = '/';
+        } else {
+            err.style.display = 'block';
+        }
+    } catch(e) { err.textContent = 'Connection failed'; err.style.display = 'block'; }
+}
+</script>
+</body>
+</html>"""
+
 DASHBOARD_HTML = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1410,7 +1462,10 @@ async function loadBlockedIPs() {
 // ── WebSocket ────────────────────────────────────────────────────────────────
 function connectWS() {
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(proto + '//' + location.host + '/ws');
+    // Pass auth token via cookie (sent automatically) and query param as fallback
+    const token = document.cookie.split(';').map(c=>c.trim()).find(c=>c.startsWith('mantis_token='));
+    const tokenVal = token ? token.split('=')[1] : '';
+    const ws = new WebSocket(proto + '//' + location.host + '/ws' + (tokenVal ? '?token=' + encodeURIComponent(tokenVal) : ''));
     ws.onopen = () => { document.getElementById('wsStatus').textContent = 'Connected'; document.getElementById('wsDot').style.background = '#10b981'; };
     ws.onclose = () => { document.getElementById('wsStatus').textContent = 'Reconnecting...'; document.getElementById('wsDot').style.background = '#ef4444'; setTimeout(connectWS, 3000); };
     ws.onmessage = (e) => {

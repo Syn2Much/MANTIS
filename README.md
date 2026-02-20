@@ -112,6 +112,20 @@ python main.py --profile database_trap
 
 The dashboard starts at **<http://localhost:8843>** by default.
 
+### Dashboard Authentication
+
+Protect the dashboard with an auth token:
+
+```bash
+python main.py --auth-token YOUR_SECRET_TOKEN
+```
+
+When set, all dashboard routes require authentication. The login page will prompt for the token. API requests can authenticate via:
+
+- **Cookie** — set automatically after login
+- **Bearer token** — `Authorization: Bearer YOUR_SECRET_TOKEN`
+- **WebSocket** — token passed as query parameter
+
 ### CLI Options
 
 ```
@@ -134,6 +148,7 @@ Options:
   --port-dashboard PORT    Dashboard port override
   --services LIST          Comma-separated services to enable
   --webhook URL            Webhook URL for alerts
+  --auth-token TOKEN       Auth token to protect the dashboard
   --db PATH                Database file path
   -v, --verbose            Debug logging
   -q, --quiet              Errors only

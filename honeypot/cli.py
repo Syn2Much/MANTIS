@@ -77,6 +77,7 @@ def _add_run_args(parser):
     parser.add_argument("--services", help="Comma-separated list of services to enable")
     parser.add_argument("--webhook", help="Webhook URL for alerts")
     parser.add_argument("--db", default=None, help="Database file path")
+    parser.add_argument("--auth-token", help="Auth token to protect the dashboard")
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose logging")
     parser.add_argument("-q", "--quiet", action="store_true", help="Quiet mode (errors only)")
 
@@ -130,6 +131,9 @@ def _resolve_config(args) -> HoneypotConfig:
 
     if getattr(args, "db", None):
         config.database_path = args.db
+
+    if getattr(args, "auth_token", None):
+        config.dashboard.auth_token = args.auth_token
 
     return config
 
