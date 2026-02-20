@@ -265,10 +265,9 @@ def main():
     print(BANNER.format(version=__version__))
 
     # Kill any stale processes holding our ports
+    print(f"  {DIM}Opening ports for honeypot services...{RESET}", flush=True)
     _kill_stale_ports(config)
-
-    # Animated service startup
-    print(f"  {BOLD}Starting services...{RESET}\n")
+    print()
 
     display_host = _get_local_ip() if config.dashboard.host == "0.0.0.0" else config.dashboard.host
     orchestrator = HoneypotOrchestrator(config, on_service_started=_spin_print, on_service_failed=_spin_fail, display_host=display_host)
