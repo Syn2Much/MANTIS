@@ -15,6 +15,11 @@ All notable changes to MANTIS are documented in this file.
 - Shutdown crash (`RuntimeError: cannot schedule new futures after shutdown`) when active client sessions existed during Ctrl-C
 
 ### Added
+- **Expanded Config page** — service-specific advanced settings (hostnames, prompts, credentials, databases, device models), banner preset dropdowns, collapsible sections per service
+- **Global Settings panel** — toggle alerts, configure webhook URL/headers, change log level from the dashboard
+- **Config persistence** — Save running config to YAML and export/download from the dashboard toolbar
+- **New API endpoints** — `GET /api/config/full`, `PUT /api/config/global`, `POST /api/config/save`, `GET /api/config/export`
+- **Mantis logo** — replaced stick-figure with detailed SVG mantis (compound eyes, raptorial forelegs, segmented abdomen, translucent wings)
 - `questionary>=2.0` dependency
 
 ## [2.0.0] - 2026-02-20

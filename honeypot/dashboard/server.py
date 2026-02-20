@@ -47,7 +47,11 @@ class DashboardServer:
         self._app.router.add_get("/api/geo/{ip}", self._handle_geo)
         self._app.router.add_get("/api/map", self._handle_map)
         self._app.router.add_get("/api/config", self._handle_get_config)
+        self._app.router.add_get("/api/config/full", self._handle_get_full_config)
         self._app.router.add_put("/api/config/service/{name}", self._handle_update_service_config)
+        self._app.router.add_put("/api/config/global", self._handle_update_global_config)
+        self._app.router.add_post("/api/config/save", self._handle_save_config)
+        self._app.router.add_get("/api/config/export", self._handle_export_config)
         self._app.router.add_get("/api/ips", self._handle_ips)
         self._app.router.add_get("/api/sessions/{id}/events", self._handle_session_events)
         self._app.router.add_post("/api/database/reset", self._handle_database_reset)
@@ -244,6 +248,12 @@ class DashboardServer:
             return web.json_response({"error": "orchestrator not available"}, status=500)
         return web.json_response(self._orchestrator.get_config_dict())
 
+    async def _handle_get_full_config(self, request: web.Request) -> web.Response:
+        """Return config + extra schema + banner presets for the config UI."""
+        if self._orchestrator is None:
+            return web.json_response({"error": "orchestrator not available"}, status=500)
+        return web.json_response(self._orchestrator.get_full_config_dict())
+
     async def _handle_update_service_config(self, request: web.Request) -> web.Response:
         if self._orchestrator is None:
             return web.json_response({"error": "orchestrator not available"}, status=500)
@@ -267,6 +277,58 @@ class DashboardServer:
         for ws in dead:
             self._websockets.discard(ws)
         return web.json_response(new_config)
+
+    async def _handle_update_global_config(self, request: web.Request) -> web.Response:
+        if self._orchestrator is None:
+            return web.json_response({"error": "orchestrator not available"}, status=500)
+        try:
+            body = await request.json()
+        except Exception:
+            return web.json_response({"error": "invalid JSON"}, status=400)
+        new_config = self._orchestrator.update_global_config(body)
+        # Broadcast
+        msg = json.dumps({"type": "config_change", "data": new_config})
+        dead = []
+        for ws in self._websockets:
+            try:
+                await ws.send_str(msg)
+            except Exception:
+                dead.append(ws)
+        for ws in dead:
+            self._websockets.discard(ws)
+        return web.json_response(new_config)
+
+    async def _handle_save_config(self, request: web.Request) -> web.Response:
+        if self._orchestrator is None:
+            return web.json_response({"error": "orchestrator not available"}, status=500)
+        try:
+            body = await request.json() if request.content_length else {}
+        except Exception:
+            body = {}
+        path = body.get("path", "mantis_config.yaml")
+        try:
+            abs_path = self._orchestrator.save_running_config(path)
+            return web.json_response({"status": "ok", "path": abs_path})
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
+
+    async def _handle_export_config(self, request: web.Request) -> web.Response:
+        if self._orchestrator is None:
+            return web.json_response({"error": "orchestrator not available"}, status=500)
+        import yaml
+        data = self._orchestrator.get_config_dict()
+        # Flatten extras for clean YAML
+        for name in ("ssh", "http", "ftp", "smb", "mysql", "telnet", "smtp", "mongodb", "vnc", "redis", "adb"):
+            svc = data.get(name, {})
+            extra = svc.pop("extra", None)
+            if extra:
+                svc.update(extra)
+        yaml_str = yaml.dump(data, default_flow_style=False, sort_keys=False)
+        return web.Response(
+            text=yaml_str,
+            content_type="application/x-yaml",
+            headers={"Content-Disposition": "attachment; filename=mantis_config.yaml"},
+        )
 
     async def _handle_ips(self, request: web.Request) -> web.Response:
         ips = await self._db.get_unique_ips()

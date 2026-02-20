@@ -6,7 +6,7 @@ LOGIN_HTML = r"""<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MANTIS // Login</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>🪲</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><path d='M60 28L48 42L72 42Z' fill='%23f59e0b'/><path d='M55 30Q45 12 30 6' stroke='%23f59e0b' stroke-width='3' fill='none'/><path d='M65 30Q75 12 90 6' stroke='%23f59e0b' stroke-width='3' fill='none'/><ellipse cx='60' cy='52' rx='8' ry='7' fill='%23f59e0b'/><path d='M54 58Q52 75 50 98Q60 104 70 98Q68 75 66 58Z' fill='%23f59e0b'/><path d='M54 46L36 34L24 44L34 50' stroke='%23f59e0b' stroke-width='3' fill='none'/><path d='M66 46L84 34L96 44L86 50' stroke='%23f59e0b' stroke-width='3' fill='none'/></svg>">
 <style>
 :root { --bg: #0c0c0c; --card: #161616; --border: #2a2a2a; --text: #e8e0d0; --dim: #8a7e6a; --accent: #f59e0b; --red: #ef4444; }
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -58,7 +58,7 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MANTIS // Threat Intelligence</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>🪲</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><path d='M60 28L48 42L72 42Z' fill='%23f59e0b'/><path d='M55 30Q45 12 30 6' stroke='%23f59e0b' stroke-width='3' fill='none'/><path d='M65 30Q75 12 90 6' stroke='%23f59e0b' stroke-width='3' fill='none'/><ellipse cx='60' cy='52' rx='8' ry='7' fill='%23f59e0b'/><path d='M54 58Q52 75 50 98Q60 104 70 98Q68 75 66 58Z' fill='%23f59e0b'/><path d='M54 46L36 34L24 44L34 50' stroke='%23f59e0b' stroke-width='3' fill='none'/><path d='M66 46L84 34L96 44L86 50' stroke='%23f59e0b' stroke-width='3' fill='none'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
@@ -222,13 +222,17 @@ body { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: v
 .pagination button:not(:disabled):hover { border-color: var(--accent); }
 
 /* Config Cards */
-.config-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.config-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
 .config-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
 .config-card h3 { font-size: 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
 .config-field { margin-bottom: 10px; }
 .config-field label { display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase; }
 .config-field input[type="text"], .config-field input[type="number"] { width: 100%; background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-primary); padding: 8px 12px; border-radius: 4px; font-family: inherit; font-size: 13px; }
 .config-field input:focus { outline: none; border-color: var(--accent); }
+.config-field textarea { width: 100%; background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-primary); padding: 8px 12px; border-radius: 4px; font-family: inherit; font-size: 12px; resize: vertical; min-height: 50px; }
+.config-field textarea:focus { outline: none; border-color: var(--accent); }
+.config-field select { width: 100%; background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-primary); padding: 8px 12px; border-radius: 4px; font-family: inherit; font-size: 13px; cursor: pointer; }
+.config-field select:focus { outline: none; border-color: var(--accent); }
 .config-toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .toggle-switch { position: relative; width: 40px; height: 22px; background: var(--border); border-radius: 11px; transition: background 0.2s; cursor: pointer; }
 .toggle-switch.on { background: var(--accent); }
@@ -236,6 +240,23 @@ body { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: v
 .toggle-switch.on::after { left: 20px; }
 .config-apply { background: var(--accent); color: #0c0c0c; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: inherit; margin-top: 8px; }
 .config-apply:hover { background: #fbbf24; }
+.config-section { margin-bottom: 24px; }
+.config-section-title { font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.config-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.config-toolbar { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+.config-toolbar button { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary); padding: 8px 16px; border-radius: 4px; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.config-toolbar button:hover { border-color: var(--accent); color: var(--accent); }
+.config-toolbar button.primary { background: var(--accent); color: #0c0c0c; border-color: var(--accent); }
+.config-toolbar button.primary:hover { background: #fbbf24; }
+.config-advanced { border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px; display: none; }
+.config-advanced.open { display: block; }
+.config-advanced-toggle { font-size: 11px; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; gap: 4px; margin-top: 8px; }
+.config-advanced-toggle:hover { color: var(--accent); }
+.config-global-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+.config-global-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.banner-row { display: flex; gap: 8px; }
+.banner-row input { flex: 1; }
+.banner-row select { width: 140px; flex-shrink: 0; }
 
 /* Modal */
 .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; }
@@ -328,20 +349,41 @@ body { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: v
 <!-- Header -->
 <div class="header">
     <h1>
-        <svg width="24" height="24" viewBox="0 0 100 100" style="vertical-align:middle;margin-right:8px">
-            <line x1="50" y1="10" x2="50" y2="30" stroke="#f59e0b" stroke-width="3"/>
-            <line x1="50" y1="30" x2="30" y2="15" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round"/>
-            <line x1="50" y1="30" x2="70" y2="15" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round"/>
-            <ellipse cx="50" cy="40" rx="12" ry="10" fill="none" stroke="#f59e0b" stroke-width="2.5"/>
-            <circle cx="45" cy="38" r="2" fill="#f59e0b"/>
-            <circle cx="55" cy="38" r="2" fill="#f59e0b"/>
-            <line x1="50" y1="50" x2="50" y2="80" stroke="#f59e0b" stroke-width="3"/>
-            <line x1="50" y1="55" x2="25" y2="40" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/>
-            <line x1="50" y1="55" x2="75" y2="40" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/>
-            <line x1="50" y1="65" x2="20" y2="55" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/>
-            <line x1="50" y1="65" x2="80" y2="55" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/>
-            <line x1="50" y1="80" x2="35" y2="95" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round"/>
-            <line x1="50" y1="80" x2="65" y2="95" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round"/>
+        <svg width="30" height="30" viewBox="0 0 120 120" style="vertical-align:middle;margin-right:10px" fill="none">
+            <!-- Head — triangular with compound eyes -->
+            <path d="M60 28 L48 42 L72 42 Z" fill="#f59e0b" opacity="0.9"/>
+            <circle cx="53" cy="36" r="3" fill="#0c0c0c"/>
+            <circle cx="67" cy="36" r="3" fill="#0c0c0c"/>
+            <!-- Antennae — swept back -->
+            <path d="M55 30 Q45 12 30 6" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" fill="none"/>
+            <path d="M65 30 Q75 12 90 6" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" fill="none"/>
+            <circle cx="30" cy="6" r="2.5" fill="#f59e0b" opacity="0.7"/>
+            <circle cx="90" cy="6" r="2.5" fill="#f59e0b" opacity="0.7"/>
+            <!-- Thorax -->
+            <ellipse cx="60" cy="52" rx="8" ry="7" fill="#f59e0b" opacity="0.85"/>
+            <!-- Abdomen — elongated -->
+            <path d="M54 58 Q52 75 50 98 Q60 104 70 98 Q68 75 66 58 Z" fill="#f59e0b" opacity="0.75"/>
+            <!-- Segments on abdomen -->
+            <line x1="53" y1="68" x2="67" y2="68" stroke="#0c0c0c" stroke-width="0.8" opacity="0.4"/>
+            <line x1="52" y1="78" x2="68" y2="78" stroke="#0c0c0c" stroke-width="0.8" opacity="0.4"/>
+            <line x1="51" y1="88" x2="69" y2="88" stroke="#0c0c0c" stroke-width="0.8" opacity="0.4"/>
+            <!-- Raptorial forelegs — the iconic praying mantis arms -->
+            <path d="M54 46 L36 34 L24 44 L34 50" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M66 46 L84 34 L96 44 L86 50" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <!-- Spines on forelegs -->
+            <line x1="30" y1="38" x2="27" y2="33" stroke="#f59e0b" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+            <line x1="34" y1="36" x2="32" y2="31" stroke="#f59e0b" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+            <line x1="90" y1="38" x2="93" y2="33" stroke="#f59e0b" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+            <line x1="86" y1="36" x2="88" y2="31" stroke="#f59e0b" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+            <!-- Mid legs -->
+            <path d="M56 56 Q40 62 26 72" stroke="#f59e0b" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+            <path d="M64 56 Q80 62 94 72" stroke="#f59e0b" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+            <!-- Hind legs -->
+            <path d="M54 66 Q38 76 22 92" stroke="#f59e0b" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+            <path d="M66 66 Q82 76 98 92" stroke="#f59e0b" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+            <!-- Wings — subtle, translucent -->
+            <path d="M58 48 Q42 52 36 64 Q48 60 56 54 Z" fill="#f59e0b" opacity="0.12"/>
+            <path d="M62 48 Q78 52 84 64 Q72 60 64 54 Z" fill="#f59e0b" opacity="0.12"/>
         </svg>
         <span style="color:#f59e0b;font-weight:800;letter-spacing:3px">MANTIS</span>
         <span style="color:#8a7e6a;font-weight:400;font-size:12px;margin-left:8px">// threat intelligence</span>
@@ -647,7 +689,24 @@ body { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: v
 
 <!-- ═══════════════════ CONFIG TAB ═══════════════════ -->
 <div id="tab-config" class="tab-content">
-<div class="config-grid" id="configGrid"></div>
+
+<div class="config-toolbar" id="configToolbar">
+    <button class="primary" onclick="saveConfig()">&#128190; Save Config</button>
+    <button onclick="exportConfig()">&#8615; Export YAML</button>
+</div>
+
+<!-- Global Settings -->
+<div class="config-section">
+    <div class="config-section-title">Global Settings</div>
+    <div class="config-global-grid" id="globalConfigGrid"></div>
+</div>
+
+<!-- Services -->
+<div class="config-section">
+    <div class="config-section-title">Honeypot Services</div>
+    <div class="config-grid" id="configGrid"></div>
+</div>
+
 </div>
 
 <!-- ═══════════════════ MODAL ═══════════════════ -->
@@ -1173,59 +1232,213 @@ async function executeResetDB() {
 }
 
 // ── CONFIG TAB ───────────────────────────────────────────────────────────────
+let _cfgSchema = {};
+let _cfgPresets = {};
+
 async function loadConfigTab() {
     try {
-        const r = await fetch('/api/config');
-        const config = await r.json();
+        const r = await fetch('/api/config/full');
+        const data = await r.json();
+        _cfgSchema = data._extra_schema || {};
+        _cfgPresets = data._banner_presets || {};
+
+        // ── Global settings ──
+        const globalGrid = document.getElementById('globalConfigGrid');
+        globalGrid.innerHTML = '';
+
+        // Alerts card
+        const alertCard = document.createElement('div');
+        alertCard.className = 'config-global-card';
+        alertCard.innerHTML = `
+            <h3 style="font-size:13px;margin-bottom:12px">Alerts</h3>
+            <div class="config-field">
+                <div class="config-toggle" onclick="this.querySelector('.toggle-switch').classList.toggle('on')">
+                    <div class="toggle-switch ${data.alerts?.enabled?'on':''}" id="cfg-global-alerts-enabled"></div>
+                    <span style="font-size:12px">${data.alerts?.enabled?'Enabled':'Disabled'}</span>
+                </div>
+            </div>
+            <div class="config-field">
+                <label>Webhook URL</label>
+                <input type="text" id="cfg-global-webhook" value="${esc(data.alerts?.webhook_url||'')}" placeholder="https://hooks.slack.com/...">
+            </div>
+            <button class="config-apply" onclick="applyGlobalConfig()">Apply</button>
+        `;
+        globalGrid.appendChild(alertCard);
+
+        // Log level card
+        const logCard = document.createElement('div');
+        logCard.className = 'config-global-card';
+        logCard.innerHTML = `
+            <h3 style="font-size:13px;margin-bottom:12px">Logging</h3>
+            <div class="config-field">
+                <label>Log Level</label>
+                <select id="cfg-global-loglevel">
+                    ${['DEBUG','INFO','WARNING','ERROR'].map(l =>
+                        `<option value="${l}" ${data.log_level===l?'selected':''}>${l}</option>`
+                    ).join('')}
+                </select>
+            </div>
+            <div class="config-field">
+                <label>Database Path</label>
+                <input type="text" value="${esc(data.database_path||'')}" disabled style="opacity:0.5">
+            </div>
+            <button class="config-apply" onclick="applyGlobalConfig()">Apply</button>
+        `;
+        globalGrid.appendChild(logCard);
+
+        // ── Service cards ──
         const grid = document.getElementById('configGrid');
         grid.innerHTML = '';
-        const svcNames = ['ssh', 'http', 'ftp', 'smb', 'mysql', 'telnet', 'smtp', 'mongodb', 'vnc', 'redis', 'adb'];
+        const svcNames = ['ssh','http','ftp','smb','mysql','telnet','smtp','mongodb','vnc','redis','adb'];
         svcNames.forEach(name => {
-            const svc = config[name];
+            const svc = data[name];
             if (!svc) return;
+            const schema = _cfgSchema[name] || {};
+            const presets = _cfgPresets[name] || [];
+            const extra = svc.extra || {};
+
+            // Banner row with optional preset dropdown
+            let bannerHtml;
+            if (presets.length > 0) {
+                bannerHtml = `
+                    <label>Banner</label>
+                    <div class="banner-row">
+                        <input type="text" id="cfg-${name}-banner" value="${esc(svc.banner||'')}">
+                        <select onchange="if(this.value)document.getElementById('cfg-${name}-banner').value=this.value;this.selectedIndex=0">
+                            <option value="">Presets</option>
+                            ${presets.map(p => `<option value="${esc(p.value)}">${esc(p.label)}</option>`).join('')}
+                        </select>
+                    </div>`;
+            } else {
+                bannerHtml = `
+                    <label>Banner</label>
+                    <input type="text" id="cfg-${name}-banner" value="${esc(svc.banner||'')}">`;
+            }
+
+            // Extra fields for advanced section
+            const schemaKeys = Object.keys(schema);
+            let advancedHtml = '';
+            if (schemaKeys.length > 0) {
+                let fieldsHtml = '';
+                schemaKeys.forEach(key => {
+                    const spec = schema[key];
+                    const val = extra[key] !== undefined ? extra[key] : spec.default;
+                    const displayVal = Array.isArray(val) ? val.join(',') : (val||'');
+                    if (spec.type === 'textarea') {
+                        fieldsHtml += `<div class="config-field">
+                            <label>${esc(spec.label)}</label>
+                            <textarea id="cfg-${name}-extra-${key}" placeholder="${esc(spec.placeholder||'')}">${esc(displayVal)}</textarea>
+                        </div>`;
+                    } else {
+                        fieldsHtml += `<div class="config-field">
+                            <label>${esc(spec.label)}</label>
+                            <input type="text" id="cfg-${name}-extra-${key}" value="${esc(displayVal)}" placeholder="${esc(spec.placeholder||'')}">
+                        </div>`;
+                    }
+                });
+                advancedHtml = `
+                    <div class="config-advanced-toggle" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('span').textContent=this.nextElementSibling.classList.contains('open')?'\\u25BE Hide advanced':'\\u25B8 Show advanced'">
+                        <span>&#9656; Show advanced</span>
+                    </div>
+                    <div class="config-advanced">${fieldsHtml}</div>`;
+            }
+
             const card = document.createElement('div');
             card.className = 'config-card';
             card.innerHTML = `
                 <h3><span class="badge badge-${name}">${name.toUpperCase()}</span> Service</h3>
                 <div class="config-field">
-                    <div class="config-toggle" onclick="this.querySelector('.toggle-switch').classList.toggle('on')">
+                    <div class="config-toggle" onclick="this.querySelector('.toggle-switch').classList.toggle('on');this.querySelector('span').textContent=this.querySelector('.toggle-switch').classList.contains('on')?'Enabled':'Disabled'">
                         <div class="toggle-switch ${svc.enabled?'on':''}" id="cfg-${name}-enabled"></div>
                         <span style="font-size:12px">${svc.enabled?'Enabled':'Disabled'}</span>
                     </div>
                 </div>
                 <div class="config-field">
                     <label>Port</label>
-                    <input type="number" id="cfg-${name}-port" value="${svc.port}">
+                    <input type="number" id="cfg-${name}-port" value="${svc.port}" min="1" max="65535">
                 </div>
                 <div class="config-field">
-                    <label>Banner</label>
-                    <input type="text" id="cfg-${name}-banner" value="${esc(svc.banner||'')}">
+                    ${bannerHtml}
                 </div>
+                ${advancedHtml}
                 <button class="config-apply" onclick="applyConfig('${name}')">Apply</button>
             `;
             grid.appendChild(card);
         });
-    } catch(e) { showToast('Failed to load config', 'error'); }
+    } catch(e) { console.error(e); showToast('Failed to load config', 'error'); }
 }
 
 async function applyConfig(name) {
     const enabled = document.getElementById('cfg-' + name + '-enabled').classList.contains('on');
     const port = parseInt(document.getElementById('cfg-' + name + '-port').value);
     const banner = document.getElementById('cfg-' + name + '-banner').value;
+
+    // Collect extra fields
+    const schema = _cfgSchema[name] || {};
+    const extra = {};
+    Object.keys(schema).forEach(key => {
+        const el = document.getElementById('cfg-' + name + '-extra-' + key);
+        if (el) extra[key] = el.value;
+    });
+
     try {
+        const body = { enabled, port, banner };
+        if (Object.keys(extra).length > 0) body.extra = extra;
         const r = await fetch('/api/config/service/' + name, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ enabled, port, banner }),
+            body: JSON.stringify(body),
         });
         if (r.ok) {
-            showToast(`${name.toUpperCase()} config updated`);
+            showToast(`${name.toUpperCase()} updated`);
             loadConfigTab();
         } else {
             const d = await r.json();
             showToast(d.error || 'Update failed', 'error');
         }
     } catch(e) { showToast('Config update failed', 'error'); }
+}
+
+async function applyGlobalConfig() {
+    const alertsEnabled = document.getElementById('cfg-global-alerts-enabled').classList.contains('on');
+    const webhookUrl = document.getElementById('cfg-global-webhook').value;
+    const logLevel = document.getElementById('cfg-global-loglevel').value;
+    try {
+        const r = await fetch('/api/config/global', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                alerts: { enabled: alertsEnabled, webhook_url: webhookUrl || null },
+                log_level: logLevel,
+            }),
+        });
+        if (r.ok) {
+            showToast('Global config updated');
+        } else {
+            const d = await r.json();
+            showToast(d.error || 'Update failed', 'error');
+        }
+    } catch(e) { showToast('Global config update failed', 'error'); }
+}
+
+async function saveConfig() {
+    try {
+        const r = await fetch('/api/config/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({}),
+        });
+        const d = await r.json();
+        if (r.ok) {
+            showToast(`Config saved to ${d.path}`);
+        } else {
+            showToast(d.error || 'Save failed', 'error');
+        }
+    } catch(e) { showToast('Save failed', 'error'); }
+}
+
+function exportConfig() {
+    window.location.href = '/api/config/export';
 }
 
 // ── MODALS ───────────────────────────────────────────────────────────────────
@@ -1473,7 +1686,7 @@ function connectWS() {
             const msg = JSON.parse(e.data);
             if (msg.type === 'event') { addEvent(msg.data); refreshStats(); }
             else if (msg.type === 'alert') { addAlert(msg.data); refreshStats(); }
-            else if (msg.type === 'config_change') { showToast('Config updated by another client'); }
+            else if (msg.type === 'config_change') { showToast('Config updated by another client'); if (document.getElementById('tab-config').classList.contains('active')) loadConfigTab(); loadActiveHoneypots(); }
             else if (msg.type === 'ip_blocked') {
                 blockedIPs.add(msg.data.ip);
                 refreshBlockedIPStyles();

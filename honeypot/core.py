@@ -4,7 +4,7 @@ import asyncio
 import logging
 import signal
 
-from .config import HoneypotConfig
+from .config import HoneypotConfig, save_config, SERVICE_EXTRA_SCHEMA, BANNER_PRESETS
 from .database import Database
 from .geo import GeoLocator
 from .alerts import AlertEngine
@@ -136,6 +136,8 @@ class HoneypotOrchestrator:
             svc_config.port = updates["port"]
         if "banner" in updates:
             svc_config.banner = updates["banner"]
+        if "extra" in updates and isinstance(updates["extra"], dict):
+            svc_config.extra.update(updates["extra"])
 
         # Find and stop existing service instance
         old_svc = None
@@ -162,6 +164,34 @@ class HoneypotOrchestrator:
                 logger.error("Failed to start %s on port %d: %s", svc_name, svc_config.port, e)
 
         return self.config.to_dict()
+
+    def get_full_config_dict(self) -> dict:
+        """Return config dict plus extra schema and banner presets for the UI."""
+        data = self.config.to_dict()
+        data["_extra_schema"] = SERVICE_EXTRA_SCHEMA
+        data["_banner_presets"] = BANNER_PRESETS
+        return data
+
+    def update_global_config(self, updates: dict) -> dict:
+        """Update global settings (alerts, log_level)."""
+        if "alerts" in updates:
+            a = updates["alerts"]
+            if "enabled" in a:
+                self.config.alerts.enabled = a["enabled"]
+            if "webhook_url" in a:
+                self.config.alerts.webhook_url = a["webhook_url"]
+            if "webhook_headers" in a:
+                self.config.alerts.webhook_headers = a["webhook_headers"]
+        if "log_level" in updates:
+            new_level = updates["log_level"].upper()
+            if new_level in ("DEBUG", "INFO", "WARNING", "ERROR"):
+                self.config.log_level = new_level
+                logging.getLogger().setLevel(getattr(logging, new_level))
+        return self.config.to_dict()
+
+    def save_running_config(self, path: str = "mantis_config.yaml") -> str:
+        """Persist current running config to YAML. Returns absolute path."""
+        return save_config(self.config, path)
 
     async def reset_database(self):
         """Wipe all captured data and reset alert engine state."""

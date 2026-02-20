@@ -2,7 +2,101 @@
 
 from dataclasses import dataclass, field
 from typing import Optional
+import os
 import yaml
+
+
+# Known per-service extra fields exposed in the dashboard config UI.
+# Each entry maps field_name -> {label, default, type, placeholder?}.
+SERVICE_EXTRA_SCHEMA = {
+    "ssh": {
+        "hostname": {"label": "Hostname", "default": "prod-web-01", "type": "text"},
+        "prompt": {"label": "Shell Prompt", "default": "root@prod-web-01:~# ", "type": "text"},
+        "credentials": {"label": "Honeytoken Creds (user:pass per line)", "default": "", "type": "textarea",
+                        "placeholder": "admin:admin123\nroot:toor"},
+    },
+    "http": {
+        "page_title": {"label": "Login Page Title", "default": "Admin Portal - Login", "type": "text"},
+        "company_name": {"label": "Company Name", "default": "Infrastructure Systems", "type": "text"},
+    },
+    "ftp": {
+        "home_dir": {"label": "Home Directory", "default": "/home/admin", "type": "text"},
+    },
+    "telnet": {
+        "hostname": {"label": "Hostname", "default": "gateway-01", "type": "text"},
+        "prompt": {"label": "Shell Prompt", "default": "root@gateway-01:~$ ", "type": "text"},
+        "additional_ports": {"label": "Additional Ports (comma-sep)", "default": "23", "type": "text"},
+        "credentials": {"label": "Honeytoken Creds (user:pass per line)", "default": "", "type": "textarea",
+                        "placeholder": "admin:admin123\nroot:toor"},
+    },
+    "mysql": {
+        "databases": {"label": "Fake Databases (comma-sep)", "default": "information_schema,mysql,performance_schema,production_db,user_data", "type": "text"},
+    },
+    "smtp": {
+        "hostname": {"label": "Mail Hostname", "default": "mail.example.com", "type": "text"},
+    },
+    "mongodb": {
+        "databases": {"label": "Fake Databases (comma-sep)", "default": "admin,config,local,production,users", "type": "text"},
+    },
+    "redis": {
+        "version": {"label": "Redis Version", "default": "7.2.4", "type": "text"},
+        "password": {"label": "AUTH Password (empty = no auth)", "default": "", "type": "text"},
+    },
+    "vnc": {
+        "resolution": {"label": "Screen Resolution", "default": "1024x768", "type": "text"},
+    },
+    "smb": {
+        "workgroup": {"label": "Workgroup", "default": "WORKGROUP", "type": "text"},
+    },
+    "adb": {
+        "device_model": {"label": "Device Model", "default": "Pixel 7", "type": "text"},
+        "android_version": {"label": "Android Version", "default": "14", "type": "text"},
+    },
+}
+
+# Banner presets per service for quick selection in the UI.
+BANNER_PRESETS = {
+    "ssh": [
+        {"label": "OpenSSH 8.9 Ubuntu", "value": "SSH-2.0-OpenSSH_8.9p1 Ubuntu-3ubuntu0.6"},
+        {"label": "OpenSSH 7.4 CentOS", "value": "SSH-2.0-OpenSSH_7.4"},
+        {"label": "OpenSSH 9.6 Debian", "value": "SSH-2.0-OpenSSH_9.6p1 Debian-4"},
+        {"label": "Dropbear 2022.83", "value": "SSH-2.0-dropbear_2022.83"},
+    ],
+    "http": [],
+    "ftp": [
+        {"label": "vsftpd 3.0.5", "value": "220 (vsFTPd 3.0.5)"},
+        {"label": "ProFTPD 1.3.8", "value": "220 ProFTPD 1.3.8 Server ready."},
+        {"label": "Pure-FTPd", "value": "220 FTP Server ready."},
+    ],
+    "smb": [],
+    "mysql": [
+        {"label": "MySQL 5.7 Ubuntu", "value": "5.7.42-0ubuntu0.18.04.1"},
+        {"label": "MySQL 8.0 Debian", "value": "8.0.33-0ubuntu0.22.04.2"},
+        {"label": "MariaDB 10.11", "value": "5.5.5-10.11.2-MariaDB"},
+    ],
+    "telnet": [],
+    "smtp": [
+        {"label": "Postfix Ubuntu", "value": "220 mail.example.com ESMTP Postfix (Ubuntu)"},
+        {"label": "Exim4 Debian", "value": "220 mail.example.com ESMTP Exim 4.96 #2"},
+        {"label": "Sendmail", "value": "220 mail.example.com ESMTP Sendmail 8.17.1"},
+    ],
+    "mongodb": [
+        {"label": "MongoDB 6.0", "value": "6.0.12"},
+        {"label": "MongoDB 7.0", "value": "7.0.4"},
+        {"label": "MongoDB 5.0", "value": "5.0.22"},
+    ],
+    "vnc": [
+        {"label": "Workstation", "value": "prod-workstation:0"},
+        {"label": "Dev Desktop", "value": "dev-desktop:0"},
+        {"label": "Server Console", "value": "srv-console:0"},
+    ],
+    "redis": [],
+    "adb": [
+        {"label": "Pixel 7", "value": "device::Pixel 7"},
+        {"label": "Samsung Galaxy S23", "value": "device::Galaxy S23"},
+        {"label": "OnePlus 12", "value": "device::OnePlus 12"},
+    ],
+}
 
 
 @dataclass
@@ -63,11 +157,14 @@ class HoneypotConfig:
         result = {}
         for name in ("ssh", "http", "ftp", "smb", "mysql", "telnet", "smtp", "mongodb", "vnc", "redis", "adb"):
             cfg = self.get_service_config(name)
-            result[name] = {
+            entry = {
                 "enabled": cfg.enabled,
                 "port": cfg.port,
                 "banner": cfg.banner,
             }
+            if cfg.extra:
+                entry["extra"] = dict(cfg.extra)
+            result[name] = entry
         result["dashboard"] = {
             "enabled": self.dashboard.enabled,
             "host": self.dashboard.host,
@@ -76,6 +173,7 @@ class HoneypotConfig:
         result["alerts"] = {
             "enabled": self.alerts.enabled,
             "webhook_url": self.alerts.webhook_url,
+            "webhook_headers": self.alerts.webhook_headers,
         }
         result["database_path"] = self.database_path
         result["log_level"] = self.log_level
@@ -134,3 +232,17 @@ def load_config(path: Optional[str] = None) -> HoneypotConfig:
         config.log_level = raw["log_level"]
 
     return config
+
+
+def save_config(config: HoneypotConfig, path: str = "mantis_config.yaml"):
+    """Write the current config to a YAML file."""
+    data = config.to_dict()
+    # Flatten extra into service dicts for clean YAML
+    for name in ("ssh", "http", "ftp", "smb", "mysql", "telnet", "smtp", "mongodb", "vnc", "redis", "adb"):
+        svc = data.get(name, {})
+        extra = svc.pop("extra", None)
+        if extra:
+            svc.update(extra)
+    with open(path, "w") as f:
+        yaml.dump(data, f, default_flow_style=False, sort_keys=False)
+    return os.path.abspath(path)

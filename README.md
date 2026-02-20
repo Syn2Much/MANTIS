@@ -70,7 +70,7 @@ Built entirely in Python with asyncio for high concurrency and zero threads per 
 
 ![Firewall](screenshots/09_firewall.png)
 
-### Config — Enable/disable services and configure ports and banners live
+### Config — Service-specific settings, banner presets, global config, save/export
 
 ![Config](screenshots/07_config.png)
 
@@ -233,6 +233,10 @@ The dashboard exposes a REST API on the same port:
 | `/api/geo/<ip>` | GET | GeoIP lookup |
 | `/api/map` | GET | Map data with coordinates |
 | `/api/config` | GET | Current service configuration |
+| `/api/config/full` | GET | Config + extra schemas + banner presets for UI |
+| `/api/config/global` | PUT | Update global settings (alerts, log level) |
+| `/api/config/save` | POST | Persist running config to YAML |
+| `/api/config/export` | GET | Download config as YAML file |
 | `/api/ips` | GET | Unique source IPs |
 | `/api/firewall/blocked` | GET | List currently blocked IPs |
 | `/api/firewall/block` | POST | Block an IP via iptables (`{"ip": "x.x.x.x"}`) |
@@ -285,8 +289,8 @@ honeypot/
 ├── __init__.py          # Package metadata
 ├── __main__.py          # Module entry point
 ├── cli.py               # Interactive CLI (questionary), headless mode, banner
-├── config.py            # YAML config loading, ServiceConfig dataclass
-├── core.py              # HoneypotOrchestrator — starts all services
+├── config.py            # YAML config loading, service extra schemas, banner presets
+├── core.py              # HoneypotOrchestrator — lifecycle, live config updates
 ├── database.py          # Async SQLite with pub/sub for WebSocket
 ├── models.py            # EventType enum, ServiceType enum
 ├── alerts.py            # Alert engine (severity rules, webhook support)
