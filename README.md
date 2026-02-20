@@ -90,16 +90,16 @@ pip install -r requirements.txt
 
 ```bash
 # Default profile — all 11 services
-python -m honeypot
+python main.py
 
 # With a specific profile
-python -m honeypot --profile profiles/default.yaml
+python main.py --profile profiles/default.yaml
 
 # Minimal (SSH + HTTP only)
-python -m honeypot --profile minimal
+python main.py --profile minimal
 
 # Database trap (MySQL + MongoDB + Redis + FTP + SMB)
-python -m honeypot --profile database_trap
+python main.py --profile database_trap
 ```
 
 The dashboard starts at **<http://localhost:8843>** by default.
@@ -107,7 +107,7 @@ The dashboard starts at **<http://localhost:8843>** by default.
 ### CLI Options
 
 ```
-python -m honeypot run [options]
+python main.py run [options]
 
 Options:
   -c, --config FILE        YAML config file path
@@ -134,8 +134,8 @@ Options:
 ### Statistics
 
 ```bash
-python -m honeypot stats
-python -m honeypot stats --db /path/to/honeypot.db
+python main.py stats
+python main.py stats --db /path/to/honeypot.db
 ```
 
 ---
@@ -256,9 +256,10 @@ Target: 127.0.0.1
 ## Architecture
 
 ```
+main.py                  # Entry point
 honeypot/
 ├── __init__.py          # Package metadata
-├── __main__.py          # Entry point
+├── __main__.py          # Module entry point
 ├── cli.py               # CLI parser, config resolution, banner
 ├── config.py            # YAML config loading, ServiceConfig dataclass
 ├── core.py              # HoneypotOrchestrator — starts all services
