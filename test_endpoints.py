@@ -645,9 +645,11 @@ async def run_api_tests(base_url: str, session: aiohttp.ClientSession) -> tuple[
     return passed, failed
 
 
-async def test_websocket(base_url: str, session: aiohttp.ClientSession) -> bool:
+async def test_websocket(base_url: str, session: aiohttp.ClientSession, ws_params: str | None = None) -> bool:
     """Connect to the WebSocket and listen briefly for any broadcast."""
     ws_url = base_url.replace("http://", "ws://") + "/ws"
+    if ws_params:
+        ws_url += ws_params
     try:
         async with session.ws_connect(ws_url, timeout=5) as ws:
             # Just verify the connection was accepted
@@ -790,14 +792,21 @@ async def run(args):
     base_url = f"http://{host}:{args.port_dashboard}"
     print(f"  {DIM}Base URL: {base_url}{RESET}\n")
 
-    async with aiohttp.ClientSession() as session:
+    headers = {}
+    if args.auth_token:
+        headers["Authorization"] = f"Bearer {args.auth_token}"
+
+    async with aiohttp.ClientSession(headers=headers) as session:
         p, f = await run_api_tests(base_url, session)
         summary["passed"] += p
         summary["failed"] += f
 
         # ── 3. WebSocket ────────────────────────────────────────────────
         header("WebSocket")
-        ws_ok = await test_websocket(base_url, session)
+        ws_url_override = None
+        if args.auth_token:
+            ws_url_override = f"?token={args.auth_token}"
+        ws_ok = await test_websocket(base_url, session, ws_params=ws_url_override)
         if ws_ok:
             summary["passed"] += 1
         else:
@@ -841,6 +850,7 @@ examples:
     parser.add_argument("--port-adb", type=int, default=DEFAULTS["adb"])
     parser.add_argument("--port-dashboard", type=int, default=DEFAULTS["dashboard"])
     parser.add_argument("--skip-services", action="store_true", help="skip honeypot service probes, only test dashboard API")
+    parser.add_argument("--auth-token", default=None, help="auth token for dashboard API")
     args = parser.parse_args()
 
     print(f"\n{BOLD}{AMBER}MANTIS Endpoint Tester{RESET}")
