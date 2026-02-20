@@ -5,9 +5,14 @@ All notable changes to MANTIS are documented in this file.
 ## [2.1.0] - 2026-02-20
 
 ### Changed
-- **Interactive CLI** — replaced 20+ argparse flags with a `questionary`-based interactive setup: checkbox service selection, optional port configuration, and auth token prompt
+- **Interactive CLI** — replaced 20+ argparse flags with a single-screen interactive setup combining service selection and port configuration
+- **Combined service selector** — custom prompt_toolkit control: `space` toggles services, `→` edits port inline, `a` toggles all, `enter` confirms — all from one screen
+- **Cyan/teal theme** — custom `[x]`/`[ ]` checkbox indicators, cyan pointer and highlights, dim instruction text
 - **`--headless` flag** for non-interactive/scripted use (systemd, Docker, CI) — runs with all defaults or loads from YAML config
 - Removed `--profile`, `--port-*`, `--services`, `--webhook`, and `--auth-token` flags (use interactive prompts or YAML config instead)
+
+### Fixed
+- Shutdown crash (`RuntimeError: cannot schedule new futures after shutdown`) when active client sessions existed during Ctrl-C
 
 ### Added
 - `questionary>=2.0` dependency

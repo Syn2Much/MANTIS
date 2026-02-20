@@ -96,11 +96,29 @@ pip install -r requirements.txt
 python main.py
 ```
 
-This launches an interactive setup where you:
+This launches a single-screen interactive setup:
 
-1. **Select services** — checkbox list of all 11 honeypots (spacebar to toggle, Enter to confirm)
-2. **Configure ports** — optionally set custom ports for each selected service and the dashboard
-3. **Set auth token** — accept the auto-generated token or type your own
+```
+? Select services & configure ports (space = toggle, → = set port, enter = confirm)
+  ❯ [x] SSH       :2222
+    [x] HTTP      :8080
+    [x] FTP       :21
+    [ ] SMB       :4450
+    [x] MYSQL     :3306
+    [x] TELNET    :2323
+    [x] SMTP      :25
+    [x] MONGODB   :27017
+    [x] VNC       :5900
+    [x] REDIS     :6379
+    [x] ADB       :5555
+    ────────────────────────────
+    [x] DASHBOARD :8843
+```
+
+- **Space** — toggle a service on/off
+- **→** — edit the port for the highlighted service inline
+- **a** — toggle all on/off
+- **Enter** — confirm and proceed to auth token prompt
 
 The dashboard starts at **<http://localhost:8843>** by default.
 

@@ -10,10 +10,31 @@ import sys
 import time
 
 import questionary
+import questionary.constants as qconst
+from prompt_toolkit.application import Application
+from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.keys import Keys
+from prompt_toolkit.styles import Style as PTStyle
 
 from . import __version__
 from .config import HoneypotConfig, load_config
 from .core import HoneypotOrchestrator
+
+# Override questionary's default indicators for clearer checkboxes
+qconst.INDICATOR_SELECTED = "[x]"
+qconst.INDICATOR_UNSELECTED = "[ ]"
+
+MANTIS_STYLE = PTStyle([
+    ("qmark", "fg:ansicyan bold"),
+    ("question", "bold"),
+    ("answer", "fg:ansicyan bold"),
+    ("pointer", "fg:ansicyan bold"),
+    ("highlighted", "fg:ansicyan bold"),
+    ("selected", "fg:ansicyan bold"),
+    ("instruction", "fg:ansibrightblack"),
+    ("text", "fg:ansiwhite"),
+    ("separator", "fg:ansibrightblack"),
+])
 
 BANNER = """
     \033[33m███╗   ███╗ █████╗ ███╗   ██╗████████╗██╗███████╗
@@ -33,52 +54,183 @@ ALL_SERVICES = [
 ]
 
 
-def _interactive_setup() -> HoneypotConfig:
-    """Run interactive questionary prompts to build config."""
-    config = HoneypotConfig()
+def _service_selector():
+    """Combined service checkbox + inline port editing with right-arrow.
 
-    # 1. Checkbox: pick services
+    Returns (selected_names, ports_dict) or None if cancelled.
+    """
+    from questionary.prompts.common import Choice, InquirerControl, Separator, create_inquirer_layout
+    from questionary.styles import merge_styles_default
+
+    ports = {name: port for name, port in ALL_SERVICES}
+    ports["dashboard"] = 8843
+    editing = {"active": False, "buffer": ""}
+
+    def make_title(name, port):
+        return f"{name.upper():8s}  :{port}"
+
     choices = [
-        questionary.Choice(f"{name.upper():8s}  port {port}", value=name, checked=True)
+        Choice(make_title(name, port), value=name, checked=True)
         for name, port in ALL_SERVICES
     ]
-    selected = questionary.checkbox(
-        "Select honeypot services", choices=choices
-    ).ask()
+    choices.append(Separator("\u2500" * 28))
+    choices.append(Choice(make_title("dashboard", 8843), value="dashboard", checked=True))
 
-    if selected is None:
-        # User cancelled (Ctrl-C during prompt)
+    ic = InquirerControl(choices, pointer="\u276f")
+
+    def get_prompt_tokens():
+        tokens = [
+            ("class:qmark", "?"),
+            ("class:question", " Select services & configure ports "),
+        ]
+        if ic.is_answered:
+            nbr = len(ic.selected_options) - (1 if "dashboard" in ic.selected_options else 0)
+            tokens.append(("class:answer", f"done ({nbr} services)"))
+        elif editing["active"]:
+            name = ic.get_pointed_at().value
+            tokens.append(
+                ("class:instruction",
+                 f" {name.upper()} port: {editing['buffer']}\u2588"
+                 "  (enter = save, esc = cancel)")
+            )
+        else:
+            tokens.append(
+                ("class:instruction",
+                 "(space = toggle, \u2192 = set port, enter = confirm)")
+            )
+        return tokens
+
+    layout = create_inquirer_layout(ic, get_prompt_tokens)
+
+    bindings = KeyBindings()
+
+    @bindings.add(Keys.ControlC, eager=True)
+    @bindings.add(Keys.ControlQ, eager=True)
+    def abort(event):
+        event.app.exit(exception=KeyboardInterrupt, style="class:aborting")
+
+    @bindings.add(" ", eager=True)
+    def toggle(event):
+        if editing["active"]:
+            return
+        pointed = ic.get_pointed_at().value
+        if pointed in ic.selected_options:
+            ic.selected_options.remove(pointed)
+        else:
+            ic.selected_options.append(pointed)
+
+    @bindings.add(Keys.Right, eager=True)
+    def enter_edit(event):
+        if editing["active"]:
+            return
+        name = ic.get_pointed_at().value
+        editing["active"] = True
+        editing["buffer"] = str(ports[name])
+
+    @bindings.add(Keys.Escape, eager=True)
+    def cancel_edit(event):
+        if editing["active"]:
+            editing["active"] = False
+            editing["buffer"] = ""
+
+    @bindings.add(Keys.Backspace, eager=True)
+    def backspace(event):
+        if editing["active"]:
+            editing["buffer"] = editing["buffer"][:-1]
+
+    for d in "0123456789":
+        @bindings.add(d, eager=True)
+        def digit(event, _d=d):
+            if editing["active"]:
+                editing["buffer"] += _d
+
+    @bindings.add(Keys.ControlM, eager=True)
+    def enter(event):
+        if editing["active"]:
+            name = ic.get_pointed_at().value
+            buf = editing["buffer"]
+            if buf.isdigit() and 1 <= int(buf) <= 65535:
+                ports[name] = int(buf)
+                ic.get_pointed_at().title = make_title(name, ports[name])
+            editing["active"] = False
+            editing["buffer"] = ""
+        else:
+            ic.is_answered = True
+            selected = [c.value for c in ic.get_selected_values()]
+            event.app.exit(result=(selected, dict(ports)))
+
+    @bindings.add(Keys.Up, eager=True)
+    def up(event):
+        if not editing["active"]:
+            ic.select_previous()
+            while not ic.is_selection_valid():
+                ic.select_previous()
+
+    @bindings.add(Keys.Down, eager=True)
+    def down(event):
+        if not editing["active"]:
+            ic.select_next()
+            while not ic.is_selection_valid():
+                ic.select_next()
+
+    @bindings.add("a", eager=True)
+    def select_all(event):
+        if editing["active"]:
+            return
+        all_selected = all(
+            c.value in ic.selected_options
+            for c in ic.choices
+            if not isinstance(c, Separator) and not c.disabled
+        )
+        if all_selected:
+            ic.selected_options = []
+        else:
+            for c in ic.choices:
+                if not isinstance(c, Separator) and c.value not in ic.selected_options and not c.disabled:
+                    ic.selected_options.append(c.value)
+
+    @bindings.add(Keys.Any)
+    def other(event):
+        """Disallow inserting other text."""
+
+    merged_style = merge_styles_default([
+        PTStyle([("bottom-toolbar", "noreverse")]),
+        MANTIS_STYLE,
+    ])
+
+    app = Application(layout=layout, key_bindings=bindings, style=merged_style)
+    try:
+        return app.run()
+    except KeyboardInterrupt:
+        return None
+
+
+def _interactive_setup() -> HoneypotConfig:
+    """Run interactive service selector then prompt for auth token."""
+    config = HoneypotConfig()
+
+    # 1. Combined service selection + port editing
+    result = _service_selector()
+    if result is None:
         sys.exit(0)
 
-    # Disable unselected services
+    selected, ports = result
+
+    # Apply selections and ports
     for name, _ in ALL_SERVICES:
-        getattr(config, name).enabled = name in selected
+        svc = getattr(config, name)
+        svc.enabled = name in selected
+        if name in ports:
+            svc.port = ports[name]
 
-    # 2. Configure ports?
-    custom_ports = questionary.confirm("Configure custom ports?", default=False).ask()
-    if custom_ports is None:
-        sys.exit(0)
+    # Dashboard
+    config.dashboard.enabled = "dashboard" in selected
+    if "dashboard" in ports:
+        config.dashboard.port = ports["dashboard"]
 
-    if custom_ports:
-        for name in selected:
-            cfg = config.get_service_config(name)
-            val = questionary.text(
-                f"  {name.upper()} port", default=str(cfg.port)
-            ).ask()
-            if val is None:
-                sys.exit(0)
-            cfg.port = int(val)
-
-        val = questionary.text(
-            "  Dashboard port", default=str(config.dashboard.port)
-        ).ask()
-        if val is None:
-            sys.exit(0)
-        config.dashboard.port = int(val)
-
-    # 3. Auth token
+    # 2. Auth token
     default_token = secrets.token_urlsafe(24)
-    token = questionary.text("Auth token", default=default_token).ask()
+    token = questionary.text("Auth token", default=default_token, style=MANTIS_STYLE).ask()
     if token is None:
         sys.exit(0)
     config.dashboard.auth_token = token
