@@ -15,6 +15,7 @@ Built entirely in Python with asyncio for high concurrency and zero threads per 
 - **11 honeypot services** with wire-protocol-level fidelity
 - **Real-time dashboard** with WebSocket live feed, filterable event log, session tracking, and alert management
 - **Attack origin map** with IP geolocation (ip-api.com)
+- **IP blocking / firewall** — click any IP in the dashboard to block it via iptables, manage blocked IPs from the Firewall tab
 - **Automated alerts** — reconnaissance detection, credential harvesting, SQL injection, shell commands
 - **Profile system** — switch between minimal, database-trap, and full deployments with YAML configs
 - **SQLite storage** with full-text search, JSON export, and database management
@@ -41,10 +42,29 @@ Built entirely in Python with asyncio for high concurrency and zero threads per 
 
 ## Screenshots
 
+### Overview — Live metrics, active honeypots, attack map, and event feed
+
+![Overview](screenshots/01_overview.png)
+
+### Events — Filterable event log with clickable IPs across all 11 services
+
+![Events](screenshots/02_events.png)
+
+### Sessions — All connections across 11 services with color-coded badges
+
+![Sessions](screenshots/03_sessions.png)
 
 ### Alerts — Severity-based threat alerts (Critical / High / Medium) with acknowledgment
 
 ![Alerts](screenshots/04_alerts.png)
+
+### Database — Advanced search with service/type filters, date range, and JSON export
+
+![Database](screenshots/05_database.png)
+
+### Firewall — Block/unblock attacker IPs via iptables directly from the dashboard
+
+![Firewall](screenshots/09_firewall.png)
 
 ### Config — Enable/disable services and configure ports and banners live
 
@@ -190,6 +210,9 @@ The dashboard exposes a REST API on the same port:
 | `/api/map` | GET | Map data with coordinates |
 | `/api/config` | GET | Current service configuration |
 | `/api/ips` | GET | Unique source IPs |
+| `/api/firewall/blocked` | GET | List currently blocked IPs |
+| `/api/firewall/block` | POST | Block an IP via iptables (`{"ip": "x.x.x.x"}`) |
+| `/api/firewall/unblock` | POST | Unblock an IP (`{"ip": "x.x.x.x"}`) |
 | `/api/database/reset` | POST | Reset the database |
 | `/ws` | WebSocket | Real-time event stream |
 

@@ -61,6 +61,12 @@ async def main():
         await page.screenshot(path=f"{OUT}/08_overview_full.png", full_page=True)
         print("[+] 08_overview_full.png")
 
+        # 9. Firewall tab
+        await page.click('button:has-text("Firewall")')
+        await asyncio.sleep(2)
+        await page.screenshot(path=f"{OUT}/09_firewall.png", full_page=False)
+        print("[+] 09_firewall.png")
+
         await browser.close()
         print("\nDone! Screenshots saved to screenshots/")
 

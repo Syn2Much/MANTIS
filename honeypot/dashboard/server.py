@@ -3,6 +3,8 @@
 import asyncio
 import json
 import logging
+import shutil
+import subprocess
 import weakref
 
 from aiohttp import web
@@ -25,6 +27,9 @@ class DashboardServer:
         self._alert_queue = None
         self._broadcast_task = None
 
+        self._blocked_ips: set[str] = set()
+        self._has_iptables = shutil.which("iptables") is not None
+
         self._app.router.add_get("/", self._handle_dashboard)
         self._app.router.add_get("/ws", self._handle_ws)
         self._app.router.add_get("/api/stats", self._handle_stats)
@@ -39,6 +44,9 @@ class DashboardServer:
         self._app.router.add_get("/api/ips", self._handle_ips)
         self._app.router.add_get("/api/sessions/{id}/events", self._handle_session_events)
         self._app.router.add_post("/api/database/reset", self._handle_database_reset)
+        self._app.router.add_get("/api/firewall/blocked", self._handle_get_blocked)
+        self._app.router.add_post("/api/firewall/block", self._handle_block_ip)
+        self._app.router.add_post("/api/firewall/unblock", self._handle_unblock_ip)
 
     async def start(self):
         self._event_queue = self._db.subscribe_events()
@@ -235,3 +243,87 @@ class DashboardServer:
         for ws in dead:
             self._websockets.discard(ws)
         return web.json_response({"status": "ok", "message": "Database reset complete"})
+
+    # ── Firewall / IP blocking ────────────────────────────────────────────
+
+    async def _run_iptables(self, action: str, ip: str) -> tuple[bool, str]:
+        """Run an iptables command. action is '-A' (add) or '-D' (delete)."""
+        if not self._has_iptables:
+            return False, "iptables not available on this system"
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "iptables", action, "INPUT", "-s", ip, "-j", "DROP",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            )
+            _, stderr = await proc.communicate()
+            if proc.returncode == 0:
+                return True, ""
+            return False, stderr.decode().strip()
+        except Exception as e:
+            return False, str(e)
+
+    async def _handle_get_blocked(self, request: web.Request) -> web.Response:
+        return web.json_response({
+            "blocked": sorted(self._blocked_ips),
+            "iptables_available": self._has_iptables,
+        })
+
+    async def _handle_block_ip(self, request: web.Request) -> web.Response:
+        try:
+            body = await request.json()
+        except Exception:
+            return web.json_response({"error": "invalid JSON"}, status=400)
+        ip = body.get("ip", "").strip()
+        if not ip:
+            return web.json_response({"error": "ip is required"}, status=400)
+        if ip in self._blocked_ips:
+            return web.json_response({"status": "already_blocked", "ip": ip})
+        ok, err = await self._run_iptables("-A", ip)
+        if ok or not self._has_iptables:
+            self._blocked_ips.add(ip)
+            logger.info("Blocked IP: %s (iptables=%s)", ip, ok)
+            # Broadcast to WebSocket clients
+            msg = json.dumps({"type": "ip_blocked", "data": {"ip": ip}})
+            dead = []
+            for ws in self._websockets:
+                try:
+                    await ws.send_str(msg)
+                except Exception:
+                    dead.append(ws)
+            for ws in dead:
+                self._websockets.discard(ws)
+            return web.json_response({
+                "status": "blocked", "ip": ip,
+                "iptables_applied": ok,
+                "note": err if not ok else "",
+            })
+        return web.json_response({"error": f"iptables failed: {err}"}, status=500)
+
+    async def _handle_unblock_ip(self, request: web.Request) -> web.Response:
+        try:
+            body = await request.json()
+        except Exception:
+            return web.json_response({"error": "invalid JSON"}, status=400)
+        ip = body.get("ip", "").strip()
+        if not ip:
+            return web.json_response({"error": "ip is required"}, status=400)
+        if ip not in self._blocked_ips:
+            return web.json_response({"status": "not_blocked", "ip": ip})
+        ok, err = await self._run_iptables("-D", ip)
+        self._blocked_ips.discard(ip)
+        logger.info("Unblocked IP: %s (iptables=%s)", ip, ok)
+        # Broadcast to WebSocket clients
+        msg = json.dumps({"type": "ip_unblocked", "data": {"ip": ip}})
+        dead = []
+        for ws in self._websockets:
+            try:
+                await ws.send_str(msg)
+            except Exception:
+                dead.append(ws)
+        for ws in dead:
+            self._websockets.discard(ws)
+        return web.json_response({
+            "status": "unblocked", "ip": ip,
+            "iptables_applied": ok,
+            "note": err if not ok else "",
+        })

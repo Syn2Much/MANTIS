@@ -242,6 +242,33 @@ body { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: v
 .hp-blob.inactive { opacity: 0.35; }
 .hp-blob.inactive .hp-dot { background: #555; }
 .hp-blob .hp-port { color: var(--text-secondary); font-weight: 400; }
+
+/* Clickable IPs */
+.ip-addr { color: var(--accent); cursor: pointer; position: relative; border-bottom: 1px dashed rgba(245,158,11,0.3); }
+.ip-addr:hover { color: #fbbf24; border-bottom-color: #fbbf24; }
+.ip-addr.blocked { color: var(--red); text-decoration: line-through; border-bottom-color: rgba(239,68,68,0.3); }
+
+/* IP Popover */
+.ip-popover { position: fixed; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 32px rgba(0,0,0,0.6); z-index: 1500; min-width: 180px; overflow: hidden; animation: popIn 0.15s ease-out; }
+@keyframes popIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+.ip-popover-header { padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 700; color: var(--accent); }
+.ip-popover-item { padding: 8px 14px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; color: var(--text-primary); }
+.ip-popover-item:hover { background: rgba(245,158,11,0.08); }
+.ip-popover-item.danger { color: var(--red); }
+.ip-popover-item.danger:hover { background: rgba(239,68,68,0.08); }
+.ip-popover-item.success { color: var(--green); }
+.ip-popover-item.success:hover { background: rgba(16,185,129,0.08); }
+
+/* Firewall tab */
+.fw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.fw-blocked-list { display: flex; flex-direction: column; gap: 4px; }
+.fw-ip-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; font-size: 13px; }
+.fw-ip-row .ip { color: var(--red); font-weight: 600; }
+.fw-unblock-btn { background: none; border: 1px solid var(--border); color: var(--green); padding: 3px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-family: inherit; }
+.fw-unblock-btn:hover { border-color: var(--green); background: rgba(16,185,129,0.1); }
+.fw-manual-block { display: flex; gap: 8px; margin-bottom: 16px; }
+.fw-manual-block input { flex: 1; background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-primary); padding: 8px 12px; border-radius: 4px; font-family: inherit; font-size: 13px; }
+.fw-manual-block input:focus { outline: none; border-color: var(--accent); }
 </style>
 </head>
 <body>
@@ -282,6 +309,7 @@ body { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: v
     <button class="tab-btn" onclick="switchTab('sessions')">Sessions</button>
     <button class="tab-btn" onclick="switchTab('alerts')">Alerts</button>
     <button class="tab-btn" onclick="switchTab('database')">Database</button>
+    <button class="tab-btn" onclick="switchTab('firewall')">Firewall</button>
     <button class="tab-btn" onclick="switchTab('config')">Config</button>
 </div>
 
@@ -537,6 +565,34 @@ body { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: v
 </div>
 </div>
 
+<!-- ═══════════════════ FIREWALL TAB ═══════════════════ -->
+<div id="tab-firewall" class="tab-content">
+<div class="fw-grid">
+    <div class="card">
+        <div class="card-header">Block IP Address</div>
+        <div class="card-body">
+            <div class="fw-manual-block">
+                <input type="text" id="fwBlockInput" placeholder="Enter IP address to block" list="ipList">
+                <button class="filter-btn danger" onclick="manualBlockIP()">Block</button>
+            </div>
+            <div style="font-size:11px;color:var(--text-secondary)">
+                <p style="margin-bottom:6px">Adds an <code style="background:var(--bg-secondary);padding:2px 6px;border-radius:3px">iptables -A INPUT -s &lt;IP&gt; -j DROP</code> rule to block all incoming traffic from the specified IP.</p>
+                <p>You can also click on any IP address in the Events, Sessions, or Map tabs to block it directly.</p>
+                <p style="margin-top:6px" id="fwIptablesStatus"></p>
+            </div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">Blocked IPs <span id="fwBlockedCount" style="color:var(--red)"></span></div>
+        <div class="card-body">
+            <div class="fw-blocked-list" id="fwBlockedList">
+                <div style="color:var(--text-secondary);font-size:12px">No IPs blocked</div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
 <!-- ═══════════════════ CONFIG TAB ═══════════════════ -->
 <div id="tab-config" class="tab-content">
 <div class="config-grid" id="configGrid"></div>
@@ -556,6 +612,9 @@ body { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: v
 <!-- Toast Container -->
 <div class="toast-container" id="toastContainer"></div>
 
+<!-- IP Popover (click on IP) -->
+<div class="ip-popover" id="ipPopover" style="display:none"></div>
+
 <!-- IP datalist for autocomplete -->
 <datalist id="ipList"></datalist>
 
@@ -568,6 +627,15 @@ const typeColors = { connection: '#3b82f6', auth_attempt: '#f59e0b', command: '#
 function formatTime(ts) { if (!ts) return ''; const d = new Date(ts + (ts.includes('Z')?'':'Z')); return d.toLocaleTimeString(); }
 function formatDateTime(ts) { if (!ts) return ''; const d = new Date(ts + (ts.includes('Z')?'':'Z')); return d.toLocaleString(); }
 function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ── Blocked IPs tracking ─────────────────────────────────────────────────────
+let blockedIPs = new Set();
+
+function ipHTML(ip) {
+    if (!ip) return '';
+    const blocked = blockedIPs.has(ip);
+    return `<span class="ip-addr${blocked ? ' blocked' : ''}" onclick="event.stopPropagation();showIPPopover(event,'${esc(ip)}')">${esc(ip)}</span>`;
+}
 
 function summarize(data) {
     if (!data) return '';
@@ -613,6 +681,7 @@ function switchTab(name) {
     else if (name === 'sessions') loadSessionsTab();
     else if (name === 'alerts') loadAlertsTab();
     else if (name === 'database') loadDatabaseTab();
+    else if (name === 'firewall') loadFirewallTab();
     else if (name === 'config') loadConfigTab();
     else if (name === 'overview') { refreshStats(); refreshOverviewMap(); }
     else if (name === 'map') { initFullMap(); refreshFullMap(); }
@@ -669,12 +738,18 @@ function pickMarkerColor(d) {
 function buildPopupHTML(d) {
     const svcs = (d.services || '').split(',').filter(Boolean);
     const svcBadges = svcs.map(s => `<span class="badge badge-${s}">${s}</span>`).join(' ');
-    return `<div class="popup-ip">${d.ip || '?'}</div>
+    const ip = d.ip || '?';
+    const isBlocked = blockedIPs.has(ip);
+    const blockBtn = isBlocked
+        ? `<button onclick="unblockIP('${ip}')" style="background:var(--green);color:#0c0c0c;border:none;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;font-family:inherit;width:100%">Unblock IP</button>`
+        : `<button onclick="blockIP('${ip}')" style="background:var(--red);color:white;border:none;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;font-family:inherit;width:100%">Block IP</button>`;
+    return `<div class="popup-ip">${ip}${isBlocked ? ' <span style="color:var(--red);font-size:10px">BLOCKED</span>' : ''}</div>
         <div class="popup-loc">${[d.city, d.country].filter(Boolean).join(', ') || 'Unknown location'}</div>
         <div class="popup-row"><span class="popup-label">ISP</span><span>${d.isp || '?'}</span></div>
         <div class="popup-row"><span class="popup-label">Events</span><span style="color:var(--accent);font-weight:700">${d.event_count || 0}</span></div>
         <div class="popup-row"><span class="popup-label">Sessions</span><span>${d.session_count || 0}</span></div>
-        <div class="popup-svcs" style="margin-top:6px">${svcBadges}</div>`;
+        <div class="popup-svcs" style="margin-top:6px">${svcBadges}</div>
+        <div style="margin-top:8px">${blockBtn}</div>`;
 }
 
 async function refreshFullMap() {
@@ -752,7 +827,7 @@ function addEvent(ev) {
     const tr = document.createElement('tr');
     tr.className = 'new-event';
     const svc = ev.service || '';
-    tr.innerHTML = `<td>${formatTime(ev.timestamp)}</td><td><span class="badge badge-${svc}">${svc}</span></td><td>${ev.src_ip||''}</td><td>${ev.event_type||''}</td><td title="${esc(summarize(ev.data))}">${esc(summarize(ev.data))}${threatBadges(ev.data)}</td>`;
+    tr.innerHTML = `<td>${formatTime(ev.timestamp)}</td><td><span class="badge badge-${svc}">${svc}</span></td><td>${ipHTML(ev.src_ip)}</td><td>${ev.event_type||''}</td><td title="${esc(summarize(ev.data))}">${esc(summarize(ev.data))}${threatBadges(ev.data)}</td>`;
     tr.onclick = () => showEventDetail(ev);
     tbody.insertBefore(tr, tbody.firstChild);
     while (tbody.children.length > 200) tbody.removeChild(tbody.lastChild);
@@ -859,7 +934,7 @@ async function loadEventsTab() {
         events.forEach(ev => {
             const tr = document.createElement('tr');
             const s = ev.service || '';
-            tr.innerHTML = `<td>${ev.id}</td><td>${formatTime(ev.timestamp)}</td><td><span class="badge badge-${s}">${s}</span></td><td>${ev.src_ip||''}</td><td>${ev.event_type||''}</td><td title="${esc(summarize(ev.data))}">${esc(summarize(ev.data))}${threatBadges(ev.data)}</td>`;
+            tr.innerHTML = `<td>${ev.id}</td><td>${formatTime(ev.timestamp)}</td><td><span class="badge badge-${s}">${s}</span></td><td>${ipHTML(ev.src_ip)}</td><td>${ev.event_type||''}</td><td title="${esc(summarize(ev.data))}">${esc(summarize(ev.data))}${threatBadges(ev.data)}</td>`;
             tr.onclick = () => showEventDetail(ev);
             tbody.appendChild(tr);
         });
@@ -885,7 +960,7 @@ async function loadSessionsTab() {
         tbody.innerHTML = '';
         sessions.forEach(s => {
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td title="${s.id}">${s.id.substring(0,8)}...</td><td><span class="badge badge-${s.service}">${s.service}</span></td><td>${s.src_ip}</td><td>${s.dst_port}</td><td>${formatDateTime(s.started_at)}</td><td>${s.ended_at ? formatDateTime(s.ended_at) : '<span style="color:var(--green)">active</span>'}</td>`;
+            tr.innerHTML = `<td title="${s.id}">${s.id.substring(0,8)}...</td><td><span class="badge badge-${s.service}">${s.service}</span></td><td>${ipHTML(s.src_ip)}</td><td>${s.dst_port}</td><td>${formatDateTime(s.started_at)}</td><td>${s.ended_at ? formatDateTime(s.ended_at) : '<span style="color:var(--green)">active</span>'}</td>`;
             tr.onclick = () => showSessionDetail(s);
             tbody.appendChild(tr);
         });
@@ -979,7 +1054,7 @@ function renderDBTable() {
     dbResults.forEach(ev => {
         const tr = document.createElement('tr');
         const s = ev.service || '';
-        tr.innerHTML = `<td>${ev.id}</td><td>${formatTime(ev.timestamp)}</td><td><span class="badge badge-${s}">${s}</span></td><td>${ev.src_ip||''}</td><td>${ev.event_type||''}</td><td title="${esc(summarize(ev.data))}">${esc(summarize(ev.data))}${threatBadges(ev.data)}</td>`;
+        tr.innerHTML = `<td>${ev.id}</td><td>${formatTime(ev.timestamp)}</td><td><span class="badge badge-${s}">${s}</span></td><td>${ipHTML(ev.src_ip)}</td><td>${ev.event_type||''}</td><td title="${esc(summarize(ev.data))}">${esc(summarize(ev.data))}${threatBadges(ev.data)}</td>`;
         tr.onclick = () => showEventDetail(ev);
         tbody.appendChild(tr);
     });
@@ -1178,6 +1253,160 @@ function showAlertDetail(al) {
     openModal('Alert Detail', html);
 }
 
+// ── IP Popover ───────────────────────────────────────────────────────────────
+function showIPPopover(event, ip) {
+    const pop = document.getElementById('ipPopover');
+    const isBlocked = blockedIPs.has(ip);
+    pop.innerHTML = `
+        <div class="ip-popover-header">${esc(ip)}</div>
+        ${isBlocked
+            ? `<div class="ip-popover-item success" onclick="unblockIP('${esc(ip)}')">&#x2714; Unblock IP</div>`
+            : `<div class="ip-popover-item danger" onclick="blockIP('${esc(ip)}')">&#x26D4; Block IP (iptables)</div>`
+        }
+        <div class="ip-popover-item" onclick="filterByIP('${esc(ip)}')">&#x1F50D; Filter Events</div>
+        <div class="ip-popover-item" onclick="lookupGeo('${esc(ip)}')">&#x1F30D; Geo Lookup</div>
+    `;
+    pop.style.display = 'block';
+    // Position near click
+    const x = Math.min(event.clientX, window.innerWidth - 200);
+    const y = Math.min(event.clientY, window.innerHeight - 180);
+    pop.style.left = x + 'px';
+    pop.style.top = y + 'px';
+}
+
+document.addEventListener('click', (e) => {
+    const pop = document.getElementById('ipPopover');
+    if (!e.target.closest('.ip-popover') && !e.target.classList.contains('ip-addr')) {
+        pop.style.display = 'none';
+    }
+});
+
+async function blockIP(ip) {
+    document.getElementById('ipPopover').style.display = 'none';
+    try {
+        const r = await fetch('/api/firewall/block', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ip }),
+        });
+        const data = await r.json();
+        if (r.ok) {
+            blockedIPs.add(ip);
+            refreshBlockedIPStyles();
+            showToast(`Blocked ${ip}` + (data.iptables_applied ? ' (iptables rule added)' : ' (tracked)'));
+            if (document.getElementById('tab-firewall').classList.contains('active')) loadFirewallTab();
+        } else {
+            showToast(data.error || 'Block failed', 'error');
+        }
+    } catch(e) { showToast('Block failed: ' + e.message, 'error'); }
+}
+
+async function unblockIP(ip) {
+    document.getElementById('ipPopover').style.display = 'none';
+    try {
+        const r = await fetch('/api/firewall/unblock', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ip }),
+        });
+        const data = await r.json();
+        if (r.ok) {
+            blockedIPs.delete(ip);
+            refreshBlockedIPStyles();
+            showToast(`Unblocked ${ip}`);
+            if (document.getElementById('tab-firewall').classList.contains('active')) loadFirewallTab();
+        } else {
+            showToast(data.error || 'Unblock failed', 'error');
+        }
+    } catch(e) { showToast('Unblock failed: ' + e.message, 'error'); }
+}
+
+function refreshBlockedIPStyles() {
+    document.querySelectorAll('.ip-addr').forEach(el => {
+        if (blockedIPs.has(el.textContent)) el.classList.add('blocked');
+        else el.classList.remove('blocked');
+    });
+}
+
+function filterByIP(ip) {
+    document.getElementById('ipPopover').style.display = 'none';
+    document.getElementById('evtFilterIP').value = ip;
+    switchTab('events');
+    loadEventsTab();
+}
+
+async function lookupGeo(ip) {
+    document.getElementById('ipPopover').style.display = 'none';
+    try {
+        const r = await fetch('/api/geo/' + encodeURIComponent(ip));
+        const geo = await r.json();
+        openModal('Geo Lookup: ' + ip, `
+            <table style="font-size:12px;width:100%">
+                <tr><td style="padding:4px 12px 4px 0;color:var(--text-secondary)">IP</td><td style="color:var(--accent);font-weight:700">${esc(ip)}</td></tr>
+                <tr><td style="padding:4px 12px 4px 0;color:var(--text-secondary)">Country</td><td>${esc(geo.country||'?')}</td></tr>
+                <tr><td style="padding:4px 12px 4px 0;color:var(--text-secondary)">City</td><td>${esc(geo.city||'?')}</td></tr>
+                <tr><td style="padding:4px 12px 4px 0;color:var(--text-secondary)">ISP</td><td>${esc(geo.isp||'?')}</td></tr>
+                <tr><td style="padding:4px 12px 4px 0;color:var(--text-secondary)">Lat/Lon</td><td>${geo.lat||'?'}, ${geo.lon||'?'}</td></tr>
+            </table>
+            <div style="margin-top:12px">
+                ${blockedIPs.has(ip)
+                    ? `<button class="config-apply" style="background:var(--green)" onclick="unblockIP('${esc(ip)}');closeModal()">Unblock IP</button>`
+                    : `<button class="config-apply" style="background:var(--red)" onclick="blockIP('${esc(ip)}');closeModal()">Block IP</button>`
+                }
+            </div>
+        `);
+    } catch(e) { showToast('Geo lookup failed', 'error'); }
+}
+
+// ── FIREWALL TAB ─────────────────────────────────────────────────────────────
+async function loadFirewallTab() {
+    try {
+        const r = await fetch('/api/firewall/blocked');
+        const data = await r.json();
+        blockedIPs = new Set(data.blocked || []);
+        refreshBlockedIPStyles();
+
+        const statusEl = document.getElementById('fwIptablesStatus');
+        if (statusEl) {
+            statusEl.innerHTML = data.iptables_available
+                ? '<span style="color:var(--green)">&#x2713; iptables is available — rules are applied to the system firewall</span>'
+                : '<span style="color:var(--orange)">&#x26A0; iptables not found — IPs are tracked but not blocked at the system level</span>';
+        }
+
+        const countEl = document.getElementById('fwBlockedCount');
+        if (countEl) countEl.textContent = blockedIPs.size > 0 ? `(${blockedIPs.size})` : '';
+
+        const list = document.getElementById('fwBlockedList');
+        if (blockedIPs.size === 0) {
+            list.innerHTML = '<div style="color:var(--text-secondary);font-size:12px">No IPs blocked</div>';
+        } else {
+            list.innerHTML = [...blockedIPs].map(ip => `
+                <div class="fw-ip-row">
+                    <span class="ip">${esc(ip)}</span>
+                    <button class="fw-unblock-btn" onclick="unblockIP('${esc(ip)}')">Unblock</button>
+                </div>
+            `).join('');
+        }
+    } catch(e) { showToast('Failed to load firewall data', 'error'); }
+}
+
+async function manualBlockIP() {
+    const input = document.getElementById('fwBlockInput');
+    const ip = input.value.trim();
+    if (!ip) return;
+    input.value = '';
+    await blockIP(ip);
+}
+
+// Load blocked IPs on init
+async function loadBlockedIPs() {
+    try {
+        const r = await fetch('/api/firewall/blocked');
+        const data = await r.json();
+        blockedIPs = new Set(data.blocked || []);
+    } catch(e) {}
+}
+
 // ── WebSocket ────────────────────────────────────────────────────────────────
 function connectWS() {
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -1190,6 +1419,16 @@ function connectWS() {
             if (msg.type === 'event') { addEvent(msg.data); refreshStats(); }
             else if (msg.type === 'alert') { addAlert(msg.data); refreshStats(); }
             else if (msg.type === 'config_change') { showToast('Config updated by another client'); }
+            else if (msg.type === 'ip_blocked') {
+                blockedIPs.add(msg.data.ip);
+                refreshBlockedIPStyles();
+                if (document.getElementById('tab-firewall').classList.contains('active')) loadFirewallTab();
+            }
+            else if (msg.type === 'ip_unblocked') {
+                blockedIPs.delete(msg.data.ip);
+                refreshBlockedIPStyles();
+                if (document.getElementById('tab-firewall').classList.contains('active')) loadFirewallTab();
+            }
             else if (msg.type === 'database_reset') {
                 showToast('Database was reset');
                 document.getElementById('eventBody').innerHTML = '';
@@ -1218,6 +1457,7 @@ async function loadActiveHoneypots() {
 }
 
 // ── Init ─────────────────────────────────────────────────────────────────────
+loadBlockedIPs();
 loadInitial();
 refreshStats();
 refreshOverviewMap();
