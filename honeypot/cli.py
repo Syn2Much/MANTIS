@@ -4,7 +4,9 @@ import argparse
 import asyncio
 import logging
 import os
+import secrets
 import sys
+import time
 
 from . import __version__
 from .config import HoneypotConfig, load_config
@@ -132,8 +134,11 @@ def _resolve_config(args) -> HoneypotConfig:
     if getattr(args, "db", None):
         config.database_path = args.db
 
-    if getattr(args, "auth_token", None):
-        config.dashboard.auth_token = args.auth_token
+    # Auth token: use provided, or generate one
+    token = getattr(args, "auth_token", None)
+    if not token:
+        token = secrets.token_urlsafe(24)
+    config.dashboard.auth_token = token
 
     return config
 
@@ -178,6 +183,83 @@ async def _run_stats(args):
     print()
 
 
+DIM = "\033[2m"
+BOLD = "\033[1m"
+GREEN = "\033[32m"
+RED = "\033[31m"
+YELLOW = "\033[33m"
+CYAN = "\033[36m"
+RESET = "\033[0m"
+CHECK = f"{GREEN}\u2714{RESET}"
+CROSS = f"{RED}\u2718{RESET}"
+SPINNER_CHARS = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+
+
+def _spin_print(msg: str, duration: float = 0.4):
+    """Show a brief spinner then resolve to a check mark."""
+    steps = max(1, int(duration / 0.05))
+    for i in range(steps):
+        c = SPINNER_CHARS[i % len(SPINNER_CHARS)]
+        sys.stdout.write(f"\r  {CYAN}{c}{RESET} {msg}")
+        sys.stdout.flush()
+        time.sleep(0.05)
+    sys.stdout.write(f"\r  {CHECK} {msg}\n")
+    sys.stdout.flush()
+
+
+def _spin_fail(msg: str, detail: str = ""):
+    suffix = f"  {DIM}{detail}{RESET}" if detail else ""
+    sys.stdout.write(f"\r  {CROSS} {msg}{suffix}\n")
+    sys.stdout.flush()
+
+
+def _kill_stale_ports(config: HoneypotConfig):
+    """Check for and kill any processes holding our configured ports."""
+    import subprocess
+    ports = set()
+    for svc_name in ("ssh", "http", "ftp", "smb", "mysql", "telnet", "smtp", "mongodb", "vnc", "redis", "adb"):
+        cfg = config.get_service_config(svc_name)
+        if cfg.enabled:
+            ports.add(cfg.port)
+            if svc_name == "telnet" and cfg.extra.get("additional_ports"):
+                for p in cfg.extra["additional_ports"]:
+                    ports.add(p)
+    if config.dashboard.enabled:
+        ports.add(config.dashboard.port)
+
+    stale_pids = set()
+    my_pid = os.getpid()
+    for port in ports:
+        try:
+            out = subprocess.check_output(
+                ["lsof", "-ti", f":{port}"], stderr=subprocess.DEVNULL, text=True
+            )
+            for pid_str in out.strip().split("\n"):
+                pid = int(pid_str.strip())
+                if pid != my_pid:
+                    stale_pids.add(pid)
+        except (subprocess.CalledProcessError, FileNotFoundError, ValueError):
+            pass
+
+    if stale_pids:
+        _spin_print(f"Killing {len(stale_pids)} stale process(es) holding ports", 0.3)
+        import signal as sig
+        for pid in stale_pids:
+            try:
+                os.kill(pid, sig.SIGTERM)
+            except ProcessLookupError:
+                pass
+        # Wait for ports to free up
+        time.sleep(2)
+        # Force kill any remaining
+        for pid in stale_pids:
+            try:
+                os.kill(pid, sig.SIGKILL)
+            except ProcessLookupError:
+                pass
+        time.sleep(0.5)
+
+
 def main():
     parser = build_parser()
     args = parser.parse_args()
@@ -191,16 +273,13 @@ def main():
 
     print(BANNER.format(version=__version__))
 
-    services = config.enabled_services()
-    print(f"  Services: {', '.join(s.upper() for s in services)}")
-    for svc in services:
-        cfg = config.get_service_config(svc)
-        print(f"    {svc.upper():6s} -> port {cfg.port}")
-    if config.dashboard.enabled:
-        print(f"  Dashboard -> http://{config.dashboard.host}:{config.dashboard.port}")
-    print()
+    # Kill any stale processes holding our ports
+    _kill_stale_ports(config)
 
-    orchestrator = HoneypotOrchestrator(config)
+    # Animated service startup
+    print(f"  {BOLD}Starting services...{RESET}\n")
+
+    orchestrator = HoneypotOrchestrator(config, on_service_started=_spin_print, on_service_failed=_spin_fail)
     try:
         asyncio.run(orchestrator.run())
     except KeyboardInterrupt:

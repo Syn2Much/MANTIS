@@ -39,7 +39,7 @@ SERVICE_MAP = {
 
 
 class HoneypotOrchestrator:
-    def __init__(self, config: HoneypotConfig):
+    def __init__(self, config: HoneypotConfig, on_service_started=None, on_service_failed=None):
         self.config = config
         self.db = Database(config.database_path)
         self.geo = GeoLocator(self.db)
@@ -47,33 +47,59 @@ class HoneypotOrchestrator:
         self.dashboard = None
         self.services: list = []
         self._shutdown_event = asyncio.Event()
+        self._on_started = on_service_started
+        self._on_failed = on_service_failed
+
+    def _notify_started(self, msg: str):
+        if self._on_started:
+            self._on_started(msg)
+        else:
+            logger.info(msg)
+
+    def _notify_failed(self, msg: str, detail: str = ""):
+        if self._on_failed:
+            self._on_failed(msg, detail)
+        else:
+            logger.error("%s: %s", msg, detail)
 
     async def start(self):
         """Initialize all components and start services."""
         await self.db.initialize()
-        logger.info("Database ready")
+        self._notify_started("Database initialized")
 
         # Start services
         for svc_name in self.config.enabled_services():
             svc_class = SERVICE_MAP.get(svc_name)
             if svc_class is None:
-                logger.warning("Unknown service: %s", svc_name)
+                self._notify_failed(f"{svc_name.upper()}", "unknown service")
                 continue
             svc_config = self.config.get_service_config(svc_name)
             service = svc_class(svc_config, self.db, self.alerts, self.geo)
             try:
                 await service.start()
                 self.services.append(service)
+                self._notify_started(f"{svc_name.upper():8s} listening on port {svc_config.port}")
             except OSError as e:
-                logger.error("Failed to start %s on port %d: %s", svc_name, svc_config.port, e)
+                self._notify_failed(f"{svc_name.upper():8s} port {svc_config.port}", str(e))
 
         # Start dashboard
         if self.config.dashboard.enabled:
             self.dashboard = DashboardServer(self.db, self.geo, self.config.dashboard, orchestrator=self)
             try:
                 await self.dashboard.start()
+                dash_url = f"http://{self.config.dashboard.host}:{self.config.dashboard.port}"
+                self._notify_started(f"Dashboard  {dash_url}")
             except OSError as e:
-                logger.error("Failed to start dashboard: %s", e)
+                self._notify_failed("Dashboard", str(e))
+
+        # Print summary
+        if self._on_started:
+            import sys
+            print()
+            token = self.config.dashboard.auth_token
+            if token:
+                print(f"  \033[1mAuth Token \033[33m{token}\033[0m")
+            print(f"\n  \033[1m\033[32m{len(self.services)} services active\033[0m — press Ctrl+C to stop\n")
 
         # Setup signal handlers
         loop = asyncio.get_event_loop()
@@ -152,18 +178,26 @@ class HoneypotOrchestrator:
 
     async def stop(self):
         """Gracefully stop all components."""
-        logger.info("Shutting down...")
+        if self._on_started:
+            import sys
+            print(f"\n  \033[1mShutting down...\033[0m\n")
 
         if self.dashboard:
             await self.dashboard.stop()
+            self._notify_started("Dashboard stopped")
 
         for service in self.services:
             try:
                 await service.stop()
+                self._notify_started(f"{service.service_name.upper():8s} stopped")
             except Exception as e:
-                logger.error("Error stopping %s: %s", service.service_name, e)
+                self._notify_failed(f"{service.service_name.upper():8s} stop", str(e))
 
         await self.alerts.close()
         await self.geo.close()
         await self.db.close()
+        self._notify_started("Database closed")
+
+        if self._on_started:
+            print(f"\n  \033[2mClean shutdown complete.\033[0m\n")
         logger.info("Shutdown complete")
