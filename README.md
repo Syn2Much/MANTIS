@@ -49,9 +49,6 @@ Built entirely in Python with asyncio for high concurrency and zero threads per 
 
 ## Screenshots
 
-### Overview — Live metrics, active honeypots, attack map, and event feed
-
-![Overview](screenshots/01_overview.png)
 
 ### Events — Filterable event log with clickable IPs across all 11 services
 
