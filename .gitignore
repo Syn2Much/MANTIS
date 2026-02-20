@@ -9,3 +9,7 @@ dist/
 build/
 .venv/
 venv/
+take_screenshots.py
+*.pem
+*.key
+.honeypot_ssh_host_key*
