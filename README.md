@@ -7,8 +7,7 @@
 ![Honeypot](https://img.shields.io/badge/Honeypot-11_Services-f59e0b?style=flat)
 ![Async](https://img.shields.io/badge/asyncio-Powered-06b6d4?style=flat&logo=python&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Linux-FCC624?style=flat&logo=linux&logoColor=black)
-![Blue Team](https://img.shields.io/badge/Blue_Team-Defensive_Security-3b82f6?style=flat&logo=shield&logoColor=white)
-![iptables](https://img.shields.io/badge/iptables-IP_Blocking-ef4444?style=flat)
+
 
 **MANTIS** is a multi-protocol network honeypot and threat intelligence platform. It deploys 11 realistic decoy services that mimic production systems, captures attacker credentials, commands, and payloads in real time, and presents everything through a live web dashboard with geolocation mapping and alerting.
 
