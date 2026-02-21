@@ -43,7 +43,8 @@ CREATE TABLE IF NOT EXISTS alerts (
     message TEXT NOT NULL,
     event_ids TEXT DEFAULT '[]',
     timestamp TEXT NOT NULL,
-    acknowledged INTEGER DEFAULT 0
+    acknowledged INTEGER DEFAULT 0,
+    data TEXT DEFAULT '{}'
 );
 
 CREATE TABLE IF NOT EXISTS geo_cache (
@@ -66,6 +67,7 @@ CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp);
 CREATE INDEX IF NOT EXISTS idx_events_service ON events(service);
 CREATE INDEX IF NOT EXISTS idx_sessions_src_ip ON sessions(src_ip);
 CREATE INDEX IF NOT EXISTS idx_alerts_severity ON alerts(severity);
+CREATE INDEX IF NOT EXISTS idx_alerts_rule_name ON alerts(rule_name);
 """
 
 
@@ -87,6 +89,12 @@ class Database:
             self._conn.execute("PRAGMA synchronous=NORMAL")
             self._conn.executescript(SCHEMA)
             self._conn.commit()
+            # Migrate existing DBs: add data column to alerts if missing
+            try:
+                self._conn.execute("ALTER TABLE alerts ADD COLUMN data TEXT DEFAULT '{}'")
+                self._conn.commit()
+            except sqlite3.OperationalError:
+                pass  # column already exists
         return self._conn
 
     async def initialize(self):
@@ -172,10 +180,11 @@ class Database:
     def _insert_alert(self, alert: Alert) -> Alert:
         conn = self._get_conn()
         cursor = conn.execute(
-            "INSERT INTO alerts (rule_name, severity, src_ip, service, message, event_ids, timestamp, acknowledged) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO alerts (rule_name, severity, src_ip, service, message, event_ids, timestamp, acknowledged, data) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (alert.rule_name, alert.severity, alert.src_ip, alert.service,
-             alert.message, json.dumps(alert.event_ids), alert.timestamp, 0),
+             alert.message, json.dumps(alert.event_ids), alert.timestamp, 0,
+             json.dumps(alert.data)),
         )
         conn.commit()
         alert.id = cursor.lastrowid
@@ -394,6 +403,10 @@ class Database:
                 d["event_ids"] = json.loads(d["event_ids"]) if d.get("event_ids") else []
             except (json.JSONDecodeError, TypeError):
                 d["event_ids"] = []
+            try:
+                d["data"] = json.loads(d["data"]) if d.get("data") else {}
+            except (json.JSONDecodeError, TypeError):
+                d["data"] = {}
             d["acknowledged"] = bool(d["acknowledged"])
             result.append(d)
         return result
@@ -523,6 +536,123 @@ class Database:
     async def get_attackers(self, **kwargs) -> dict:
         return await self._loop.run_in_executor(self._executor, lambda: self._get_attackers(**kwargs))
 
+    def _get_payload_stats(self) -> dict:
+        """Aggregate payload/IOC alert statistics for the Payload Intel tab."""
+        conn = self._get_conn()
+
+        # Total and by-severity counts
+        total = conn.execute(
+            "SELECT COUNT(*) FROM alerts WHERE rule_name = 'payload_ioc'"
+        ).fetchone()[0]
+        sev_rows = conn.execute(
+            "SELECT severity, COUNT(*) as cnt FROM alerts WHERE rule_name = 'payload_ioc' GROUP BY severity"
+        ).fetchall()
+        by_severity = {row["severity"]: row["cnt"] for row in sev_rows}
+
+        # Unique source IPs + top 10
+        unique_ips = conn.execute(
+            "SELECT COUNT(DISTINCT src_ip) FROM alerts WHERE rule_name = 'payload_ioc'"
+        ).fetchone()[0]
+        top_ips_rows = conn.execute(
+            "SELECT src_ip, COUNT(*) as cnt FROM alerts WHERE rule_name = 'payload_ioc' "
+            "GROUP BY src_ip ORDER BY cnt DESC LIMIT 10"
+        ).fetchall()
+        top_ips = [{"ip": row["src_ip"], "count": row["cnt"]} for row in top_ips_rows]
+
+        # Fetch all payload_ioc alerts to parse JSON data for aggregations
+        all_rows = conn.execute(
+            "SELECT id, severity, src_ip, service, message, timestamp, acknowledged, data "
+            "FROM alerts WHERE rule_name = 'payload_ioc' ORDER BY id DESC"
+        ).fetchall()
+
+        # Aggregation accumulators
+        pattern_freq = {}       # pattern_name -> {count, severity, description}
+        ioc_type_totals = {}    # ioc_type -> set of unique values
+        recent_iocs = []        # last 50 unique IOC entries
+        seen_iocs = set()
+        timeline_buckets = {}   # hour_key -> count
+
+        for row in all_rows:
+            try:
+                data = json.loads(row["data"]) if row["data"] else {}
+            except (json.JSONDecodeError, TypeError):
+                data = {}
+
+            # Pattern frequency
+            for p in data.get("patterns", []):
+                name = p.get("name", "unknown")
+                if name not in pattern_freq:
+                    pattern_freq[name] = {"count": 0, "severity": p.get("severity", "medium"), "description": p.get("description", "")}
+                pattern_freq[name]["count"] += 1
+                # Keep worst severity
+                sev_order = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
+                if sev_order.get(p.get("severity"), 99) < sev_order.get(pattern_freq[name]["severity"], 99):
+                    pattern_freq[name]["severity"] = p.get("severity", "medium")
+
+            # IOC type totals + recent IOCs
+            for ioc_type, values in data.get("iocs", {}).items():
+                if ioc_type not in ioc_type_totals:
+                    ioc_type_totals[ioc_type] = set()
+                for v in values:
+                    ioc_type_totals[ioc_type].add(v)
+                    ioc_key = f"{ioc_type}:{v}"
+                    if ioc_key not in seen_iocs and len(recent_iocs) < 50:
+                        seen_iocs.add(ioc_key)
+                        recent_iocs.append({"type": ioc_type, "value": v, "timestamp": row["timestamp"]})
+
+            # Timeline buckets (per hour)
+            ts = row["timestamp"] or ""
+            hour_key = ts[:13]  # "YYYY-MM-DDTHH"
+            if hour_key:
+                timeline_buckets[hour_key] = timeline_buckets.get(hour_key, 0) + 1
+
+        # Build sorted pattern list
+        patterns_list = [
+            {"name": name, "count": info["count"], "severity": info["severity"], "description": info["description"]}
+            for name, info in pattern_freq.items()
+        ]
+        patterns_list.sort(key=lambda x: x["count"], reverse=True)
+
+        # Convert IOC type totals to counts
+        ioc_types_result = {k: len(v) for k, v in ioc_type_totals.items()}
+
+        # Build timeline (last 48 hours, sorted)
+        sorted_hours = sorted(timeline_buckets.keys())
+        timeline = [{"hour": h, "count": timeline_buckets[h]} for h in sorted_hours[-48:]]
+
+        # Recent alerts for the table (last 50)
+        recent_alerts = []
+        for row in all_rows[:50]:
+            try:
+                data = json.loads(row["data"]) if row["data"] else {}
+            except (json.JSONDecodeError, TypeError):
+                data = {}
+            recent_alerts.append({
+                "id": row["id"],
+                "severity": row["severity"],
+                "src_ip": row["src_ip"],
+                "service": row["service"],
+                "message": row["message"],
+                "timestamp": row["timestamp"],
+                "acknowledged": bool(row["acknowledged"]),
+                "data": data,
+            })
+
+        return {
+            "total": total,
+            "by_severity": by_severity,
+            "unique_ips": unique_ips,
+            "top_ips": top_ips,
+            "patterns": patterns_list,
+            "ioc_types": ioc_types_result,
+            "recent_iocs": recent_iocs,
+            "timeline": timeline,
+            "recent_alerts": recent_alerts,
+        }
+
+    async def get_payload_stats(self) -> dict:
+        return await self._loop.run_in_executor(self._executor, self._get_payload_stats)
+
     def _export_all(self, table: str = "events") -> list[dict]:
         """Export all rows from a table for full data dump."""
         conn = self._get_conn()
@@ -557,6 +687,10 @@ class Database:
                     d["event_ids"] = json.loads(d["event_ids"]) if d.get("event_ids") else []
                 except (json.JSONDecodeError, TypeError):
                     d["event_ids"] = []
+                try:
+                    d["data"] = json.loads(d["data"]) if d.get("data") else {}
+                except (json.JSONDecodeError, TypeError):
+                    d["data"] = {}
                 d["acknowledged"] = bool(d["acknowledged"])
                 result.append(d)
             return result

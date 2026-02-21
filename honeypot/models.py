@@ -134,6 +134,7 @@ class Alert:
     event_ids: list = field(default_factory=list)
     timestamp: str = ""
     acknowledged: bool = False
+    data: dict = field(default_factory=dict)
 
     def __post_init__(self):
         if not self.timestamp:
@@ -150,4 +151,5 @@ class Alert:
             "event_ids": self.event_ids,
             "timestamp": self.timestamp,
             "acknowledged": self.acknowledged,
+            "data": self.data,
         }

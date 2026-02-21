@@ -58,6 +58,7 @@ class DashboardServer:
         self._app.router.add_get("/api/sessions/{id}/events", self._handle_session_events)
         self._app.router.add_post("/api/database/reset", self._handle_database_reset)
         self._app.router.add_get("/api/attackers", self._handle_attackers)
+        self._app.router.add_get("/api/payload-stats", self._handle_payload_stats)
         self._app.router.add_get("/api/export", self._handle_export)
         self._app.router.add_get("/api/firewall/blocked", self._handle_get_blocked)
         self._app.router.add_post("/api/firewall/block", self._handle_block_ip)
@@ -418,6 +419,14 @@ class DashboardServer:
             return web.json_response(data)
         except Exception as e:
             logger.exception("Attackers query failed")
+            return web.json_response({"error": str(e)}, status=500)
+
+    async def _handle_payload_stats(self, request: web.Request) -> web.Response:
+        try:
+            data = await self._db.get_payload_stats()
+            return web.json_response(data)
+        except Exception as e:
+            logger.exception("Payload stats query failed")
             return web.json_response({"error": str(e)}, status=500)
 
     async def _handle_export(self, request: web.Request) -> web.Response:

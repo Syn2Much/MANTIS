@@ -2,6 +2,24 @@
 
 All notable changes to MANTIS are documented in this file.
 
+## [2.2.0] - 2026-02-21
+
+### Added
+- **Payload Intel tab** — dedicated analytics dashboard for payload detections and IOC aggregation, visually distinct from other tabs with cyan accent theme
+- **Gradient header banner** with shield icon, refresh and export controls
+- **6-stat summary row** — Total Payloads, Critical, High, URLs Found, Hashes Found, Unique Attackers with color-coded accent borders
+- **3-column chart row** — Pattern Categories donut chart, IOC Types donut chart, Activity Timeline bar chart (last 48h with hover tooltips)
+- **Top Patterns ranked list** — numbered circles, severity badges, proportional gradient progress bars
+- **Recent IOCs feed** — scrollable list with compact type badges and monospace values
+- **Payload Alerts table** — Time, Severity, Service, Source IP, Patterns, IOC count; click opens existing alert detail modal
+- **Cross-service payload detection engine** — 33 regex patterns across 7 categories (Downloaders, Reverse Shells, Miners, Persistence, Encoded Payloads, Privilege Escalation, Other)
+- **IOC extraction** — automatic extraction of URLs, IPs, domains, MD5/SHA1/SHA256 hashes, and email addresses from event data
+- **`PayloadIOCDetector` alert rule** — stateless rule scanning SSH, Telnet, HTTP, MySQL, FTP, Redis, and all other service events
+- **`GET /api/payload-stats` endpoint** — aggregated payload statistics (severity counts, pattern frequency, IOC type totals, timeline buckets, top IPs, recent alerts)
+- **`idx_alerts_rule_name` index** for efficient payload_ioc alert queries
+- **Live WebSocket updates** — Payload Intel tab auto-refreshes on new payload_ioc alerts with toast notification
+- **Alert data field** — `data` dict on Alert model for storing structured pattern/IOC metadata
+
 ## [2.1.0] - 2026-02-20
 
 ### Changed

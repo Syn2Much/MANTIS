@@ -181,6 +181,7 @@ body { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: v
 .badge-low { background: rgba(16, 185, 129, 0.2); color: var(--green); }
 .badge-info { background: rgba(107, 114, 128, 0.2); color: #9ca3af; }
 .badge-threat { background: rgba(239, 68, 68, 0.3); color: var(--red); font-size: 9px; margin-left: 4px; }
+.badge-ioc { background: rgba(6, 182, 212, 0.2); color: var(--cyan); font-size: 9px; margin-left: 4px; }
 
 /* Alerts */
 .alert-item { padding: 10px 14px; border-bottom: 1px solid var(--border); display: flex; gap: 10px; align-items: flex-start; }
@@ -342,6 +343,64 @@ body { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: v
 .fw-manual-block { display: flex; gap: 8px; margin-bottom: 16px; }
 .fw-manual-block input { flex: 1; background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-primary); padding: 8px 12px; border-radius: 4px; font-family: inherit; font-size: 13px; }
 .fw-manual-block input:focus { outline: none; border-color: var(--accent); }
+
+/* ── Payload Intel Tab ───────────────────────────────────────────── */
+.pi-header { background: linear-gradient(135deg, rgba(6,182,212,0.15) 0%, rgba(6,182,212,0.03) 100%); border: 1px solid rgba(6,182,212,0.2); border-radius: 10px; padding: 20px 24px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+.pi-header-left { display: flex; align-items: center; gap: 14px; }
+.pi-header-icon { width: 44px; height: 44px; border-radius: 10px; background: linear-gradient(135deg, rgba(6,182,212,0.25), rgba(6,182,212,0.08)); display: flex; align-items: center; justify-content: center; font-size: 22px; border: 1px solid rgba(6,182,212,0.3); }
+.pi-header h2 { font-size: 18px; font-weight: 800; letter-spacing: 2px; color: var(--cyan); margin: 0; }
+.pi-header .pi-sub { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+.pi-header-actions { display: flex; gap: 8px; }
+.pi-header-actions button { background: var(--bg-card); border: 1px solid rgba(6,182,212,0.3); color: var(--cyan); padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600; font-family: inherit; }
+.pi-header-actions button:hover { background: rgba(6,182,212,0.1); border-color: var(--cyan); }
+
+.pi-stats-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 16px; }
+.pi-stat-box { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 14px 12px; text-align: center; position: relative; overflow: hidden; }
+.pi-stat-box::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 8px 8px 0 0; }
+.pi-stat-box.cyan::before { background: var(--cyan); }
+.pi-stat-box.red::before { background: var(--red); }
+.pi-stat-box.orange::before { background: var(--orange); }
+.pi-stat-box.amber::before { background: #f59e0b; }
+.pi-stat-box.purple::before { background: var(--purple); }
+.pi-stat-box.green::before { background: var(--green); }
+.pi-stat-val { font-size: 26px; font-weight: 700; }
+.pi-stat-box.cyan .pi-stat-val { color: var(--cyan); }
+.pi-stat-box.red .pi-stat-val { color: var(--red); }
+.pi-stat-box.orange .pi-stat-val { color: var(--orange); }
+.pi-stat-box.amber .pi-stat-val { color: #f59e0b; }
+.pi-stat-box.purple .pi-stat-val { color: var(--purple); }
+.pi-stat-box.green .pi-stat-val { color: var(--green); }
+.pi-stat-lbl { font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+
+.pi-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.pi-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+.pi-pattern-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.pi-pattern-item:last-child { border-bottom: none; }
+.pi-pattern-rank { width: 24px; height: 24px; border-radius: 50%; background: rgba(6,182,212,0.15); color: var(--cyan); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+.pi-pattern-info { flex: 1; min-width: 0; }
+.pi-pattern-name { font-size: 12px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pi-pattern-bar-bg { height: 4px; background: var(--border); border-radius: 2px; margin-top: 4px; }
+.pi-pattern-bar { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--cyan), rgba(6,182,212,0.4)); transition: width 0.4s ease; }
+.pi-pattern-count { font-size: 12px; font-weight: 700; color: var(--text-primary); flex-shrink: 0; margin-right: 4px; }
+
+.pi-ioc-scroll { max-height: 340px; overflow-y: auto; }
+.pi-ioc-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.pi-ioc-item:last-child { border-bottom: none; }
+.pi-ioc-type { padding: 2px 6px; border-radius: 3px; font-size: 9px; font-weight: 700; text-transform: uppercase; background: rgba(6,182,212,0.15); color: var(--cyan); flex-shrink: 0; min-width: 48px; text-align: center; }
+.pi-ioc-val { font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 11px; color: var(--text-primary); word-break: break-all; flex: 1; }
+.pi-ioc-time { font-size: 10px; color: var(--text-secondary); white-space: nowrap; flex-shrink: 0; }
+
+.pi-timeline { padding: 12px 0; }
+.pi-timeline-chart { display: flex; align-items: flex-end; gap: 2px; height: 120px; }
+.pi-timeline-bar { flex: 1; min-width: 4px; background: linear-gradient(to top, rgba(6,182,212,0.3), var(--cyan)); border-radius: 2px 2px 0 0; cursor: pointer; position: relative; transition: opacity 0.2s; }
+.pi-timeline-bar:hover { opacity: 0.8; }
+.pi-timeline-bar .pi-tt { display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: var(--bg-card); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-size: 10px; white-space: nowrap; z-index: 10; color: var(--text-primary); pointer-events: none; }
+.pi-timeline-bar:hover .pi-tt { display: block; }
+.pi-timeline-labels { display: flex; justify-content: space-between; font-size: 9px; color: var(--text-secondary); margin-top: 4px; }
+
+.pi-empty { text-align: center; padding: 40px 20px; color: var(--text-secondary); font-size: 13px; }
+.pi-empty-icon { font-size: 32px; margin-bottom: 8px; opacity: 0.5; }
 </style>
 </head>
 <body>
@@ -403,6 +462,7 @@ body { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: v
     <button class="tab-btn" onclick="switchTab('sessions')">Sessions</button>
     <button class="tab-btn" onclick="switchTab('alerts')">Alerts</button>
     <button class="tab-btn" onclick="switchTab('attackers')">Attackers</button>
+    <button class="tab-btn" onclick="switchTab('payloadintel')">Payload Intel</button>
     <button class="tab-btn" onclick="switchTab('database')">Database</button>
     <button class="tab-btn" onclick="switchTab('firewall')">Firewall</button>
     <button class="tab-btn" onclick="switchTab('config')">Config</button>
@@ -615,6 +675,20 @@ body { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: v
             <label><input type="checkbox" value="acked" checked> Acknowledged</label>
         </div>
     </div>
+    <div class="filter-group">
+        <label>Rule</label>
+        <select id="alertRuleFilter" style="background:var(--bg-primary);color:var(--text-primary);border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-family:inherit;font-size:12px">
+            <option value="">All Rules</option>
+            <option value="payload_ioc">Payload / IOC</option>
+            <option value="http_threat">HTTP Threat</option>
+            <option value="brute_force">Brute Force</option>
+            <option value="ssh_shell_access">SSH Shell</option>
+            <option value="reconnaissance">Reconnaissance</option>
+            <option value="payload_captured">Payload Captured</option>
+            <option value="ntlm_hash_captured">NTLM Hash</option>
+            <option value="mysql_query">MySQL Query</option>
+        </select>
+    </div>
     <button class="filter-btn" onclick="loadAlertsTab()">Apply</button>
     <button class="filter-btn secondary" onclick="bulkAckAlerts()">Ack All Visible</button>
 </div>
@@ -660,6 +734,94 @@ body { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: v
     <span id="atkPageInfo">Page 1</span>
     <button onclick="atkPage(1)" id="atkNext">Next</button>
 </div>
+</div>
+
+<!-- ═══════════════════ PAYLOAD INTEL TAB ═══════════════════ -->
+<div id="tab-payloadintel" class="tab-content">
+
+<!-- Header Banner -->
+<div class="pi-header">
+    <div class="pi-header-left">
+        <div class="pi-header-icon">&#x1F6E1;</div>
+        <div>
+            <h2>PAYLOAD INTEL</h2>
+            <div class="pi-sub">Automated payload detection &amp; IOC aggregation</div>
+        </div>
+    </div>
+    <div class="pi-header-actions">
+        <button onclick="loadPayloadIntel()">&#x21BB; Refresh</button>
+        <button onclick="exportTable('alerts','json')">&#x2913; Export</button>
+    </div>
+</div>
+
+<!-- Stat Boxes -->
+<div class="pi-stats-row">
+    <div class="pi-stat-box cyan"><div class="pi-stat-val" id="piTotal">0</div><div class="pi-stat-lbl">Total Payloads</div></div>
+    <div class="pi-stat-box red"><div class="pi-stat-val" id="piCritical">0</div><div class="pi-stat-lbl">Critical</div></div>
+    <div class="pi-stat-box orange"><div class="pi-stat-val" id="piHigh">0</div><div class="pi-stat-lbl">High</div></div>
+    <div class="pi-stat-box amber"><div class="pi-stat-val" id="piUrls">0</div><div class="pi-stat-lbl">URLs Found</div></div>
+    <div class="pi-stat-box purple"><div class="pi-stat-val" id="piHashes">0</div><div class="pi-stat-lbl">Hashes Found</div></div>
+    <div class="pi-stat-box green"><div class="pi-stat-val" id="piAttackers">0</div><div class="pi-stat-lbl">Unique Attackers</div></div>
+</div>
+
+<!-- 3-column chart row -->
+<div class="pi-grid">
+    <div class="card">
+        <div class="card-header">Pattern Categories</div>
+        <div class="card-body">
+            <div class="chart-container">
+                <canvas id="piCatChart" width="160" height="160" class="chart-canvas"></canvas>
+                <div class="chart-legend" id="piCatLegend"></div>
+            </div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">IOC Types</div>
+        <div class="card-body">
+            <div class="chart-container">
+                <canvas id="piIocChart" width="160" height="160" class="chart-canvas"></canvas>
+                <div class="chart-legend" id="piIocLegend"></div>
+            </div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">Activity Timeline <span style="font-size:10px;font-weight:400;color:var(--text-secondary)">(last 48h)</span></div>
+        <div class="card-body">
+            <div class="pi-timeline">
+                <div class="pi-timeline-chart" id="piTimeline"></div>
+                <div class="pi-timeline-labels" id="piTimelineLabels"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 2-column row: patterns + IOCs -->
+<div class="pi-grid-2">
+    <div class="card">
+        <div class="card-header">Top Patterns <span id="piPatternCount" style="color:var(--cyan)"></span></div>
+        <div class="card-body" style="max-height:360px;overflow-y:auto" id="piPatternList">
+            <div class="pi-empty"><div class="pi-empty-icon">&#x1F50D;</div>No payload patterns detected yet</div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">Recent IOCs <span id="piIocCount" style="color:var(--cyan)"></span></div>
+        <div class="card-body pi-ioc-scroll" id="piIocFeed">
+            <div class="pi-empty"><div class="pi-empty-icon">&#x1F517;</div>No IOCs extracted yet</div>
+        </div>
+    </div>
+</div>
+
+<!-- Payload Alerts Table -->
+<div class="card">
+    <div class="card-header">Payload Alerts <span id="piAlertCount" style="color:var(--cyan)"></span></div>
+    <div class="events-scroll" style="max-height:400px">
+        <table class="event-table">
+            <thead><tr><th>Time</th><th>Severity</th><th>Service</th><th>Source IP</th><th>Patterns</th><th>IOCs</th></tr></thead>
+            <tbody id="piAlertBody"></tbody>
+        </table>
+    </div>
+</div>
+
 </div>
 
 <!-- ═══════════════════ DATABASE TAB ═══════════════════ -->
@@ -870,6 +1032,7 @@ function switchTab(name) {
     else if (name === 'sessions') loadSessionsTab();
     else if (name === 'alerts') loadAlertsTab();
     else if (name === 'attackers') loadAttackersTab();
+    else if (name === 'payloadintel') loadPayloadIntel();
     else if (name === 'database') loadDatabaseTab();
     else if (name === 'firewall') loadFirewallTab();
     else if (name === 'config') loadConfigTab();
@@ -1026,7 +1189,8 @@ function addAlert(al) {
     const div = document.createElement('div');
     div.className = 'alert-item';
     div.id = 'alert-' + al.id;
-    div.innerHTML = `<span class="badge badge-${al.severity}">${al.severity}</span><div class="alert-msg">${esc(al.message||al.rule_name)}</div><span class="alert-time">${formatTime(al.timestamp)}</span><button class="alert-ack" onclick="event.stopPropagation();ackAlert(${al.id})">ACK</button>`;
+    const iocBadge = (al.data && al.data.iocs) ? (() => { const c = Object.values(al.data.iocs).reduce((s,a) => s+a.length, 0); return c ? `<span class="badge badge-ioc">${c} IOC${c>1?'s':''}</span>` : ''; })() : '';
+    div.innerHTML = `<span class="badge badge-${al.severity}">${al.severity}</span>${iocBadge}<div class="alert-msg">${esc(al.message||al.rule_name)}</div><span class="alert-time">${formatTime(al.timestamp)}</span><button class="alert-ack" onclick="event.stopPropagation();ackAlert(${al.id})">ACK</button>`;
     div.onclick = () => showAlertDetail(al);
     panel.insertBefore(div, panel.firstChild);
     while (panel.children.length > 100) panel.removeChild(panel.lastChild);
@@ -1182,13 +1346,16 @@ async function loadAlertsTab() {
         let alerts = await apiFetch(url);
         if (sevs.size < 5) alerts = alerts.filter(a => sevs.has(a.severity));
         if (showAcked && !showUnacked) alerts = alerts.filter(a => a.acknowledged);
+        const ruleFilter = document.getElementById('alertRuleFilter').value;
+        if (ruleFilter) alerts = alerts.filter(a => a.rule_name === ruleFilter);
         alertTabData = alerts;
         const panel = document.getElementById('alertsTabPanel');
         panel.innerHTML = '';
         alerts.forEach(al => {
             const div = document.createElement('div');
             div.className = 'alert-item';
-            div.innerHTML = `<span class="badge badge-${al.severity}">${al.severity}</span><div class="alert-msg">${esc(al.message||al.rule_name)}</div><span class="alert-time">${formatTime(al.timestamp)}</span>${al.acknowledged?'<span style="color:var(--green);font-size:10px">ACK</span>':'<button class="alert-ack" onclick="event.stopPropagation();ackAlertTab('+al.id+')">ACK</button>'}`;
+            const tabIocBadge = (al.data && al.data.iocs) ? (() => { const c = Object.values(al.data.iocs).reduce((s,a) => s+a.length, 0); return c ? `<span class="badge badge-ioc">${c} IOC${c>1?'s':''}</span>` : ''; })() : '';
+            div.innerHTML = `<span class="badge badge-${al.severity}">${al.severity}</span>${tabIocBadge}<div class="alert-msg">${esc(al.message||al.rule_name)}</div><span class="alert-time">${formatTime(al.timestamp)}</span>${al.acknowledged?'<span style="color:var(--green);font-size:10px">ACK</span>':'<button class="alert-ack" onclick="event.stopPropagation();ackAlertTab('+al.id+')">ACK</button>'}`;
             div.onclick = () => showAlertDetail(al);
             panel.appendChild(div);
         });
@@ -1322,6 +1489,125 @@ function showAttackerDetail(a) {
         }
     </div>`;
     openModal('Attacker Profile: ' + a.ip, html);
+}
+
+// ── PAYLOAD INTEL TAB ─────────────────────────────────────────────────────
+const piCategoryMap = {
+    'wget_download': 'Downloaders', 'curl_download': 'Downloaders', 'curl_pipe_sh': 'Downloaders',
+    'wget_pipe_sh': 'Downloaders', 'tftp_download': 'Downloaders', 'sh_download': 'Downloaders',
+    'chmod_exec': 'Downloaders', 'bash_script': 'Downloaders', 'dot_slash_exec': 'Downloaders',
+    'bash_revshell': 'Reverse Shells', 'nc_revshell': 'Reverse Shells', 'python_revshell': 'Reverse Shells',
+    'perl_revshell': 'Reverse Shells', 'ruby_revshell': 'Reverse Shells', 'php_revshell': 'Reverse Shells',
+    'mkfifo_revshell': 'Reverse Shells', 'socat_revshell': 'Reverse Shells', 'dev_tcp': 'Reverse Shells',
+    'xmrig': 'Miners', 'mining_pool': 'Miners', 'monero_wallet': 'Miners',
+    'crontab_mod': 'Persistence', 'rc_local': 'Persistence', 'systemd_persist': 'Persistence',
+    'ssh_key_inject': 'Persistence',
+    'hex_shellcode': 'Encoded Payloads', 'long_hex_string': 'Encoded Payloads',
+    'base64_pipe_sh': 'Encoded Payloads', 'echo_decode_exec': 'Encoded Payloads',
+    'suid_chmod': 'Priv Escalation', 'iptables_flush': 'Priv Escalation',
+    'passwd_shadow': 'Priv Escalation', 'tmp_exec': 'Other',
+};
+const piCatColors = {
+    'Downloaders': '#06b6d4', 'Reverse Shells': '#ef4444', 'Miners': '#f59e0b',
+    'Persistence': '#8b5cf6', 'Encoded Payloads': '#ec4899', 'Priv Escalation': '#f97316', 'Other': '#6b7280',
+};
+const piIocColors = {
+    'urls': '#06b6d4', 'ips': '#ef4444', 'domains': '#8b5cf6', 'md5': '#f59e0b',
+    'sha1': '#ec4899', 'sha256': '#10b981', 'emails': '#3b82f6',
+};
+
+async function loadPayloadIntel() {
+    try {
+        const data = await apiFetch('/api/payload-stats');
+
+        // Stat boxes
+        document.getElementById('piTotal').textContent = data.total || 0;
+        document.getElementById('piCritical').textContent = data.by_severity?.critical || 0;
+        document.getElementById('piHigh').textContent = data.by_severity?.high || 0;
+        document.getElementById('piUrls').textContent = data.ioc_types?.urls || 0;
+        const hashCount = (data.ioc_types?.md5 || 0) + (data.ioc_types?.sha1 || 0) + (data.ioc_types?.sha256 || 0);
+        document.getElementById('piHashes').textContent = hashCount;
+        document.getElementById('piAttackers').textContent = data.unique_ips || 0;
+
+        // Pattern categories donut
+        const catCounts = {};
+        (data.patterns || []).forEach(p => {
+            const cat = piCategoryMap[p.name] || 'Other';
+            catCounts[cat] = (catCounts[cat] || 0) + p.count;
+        });
+        drawDonut('piCatChart', 'piCatLegend', catCounts, piCatColors);
+
+        // IOC types donut
+        drawDonut('piIocChart', 'piIocLegend', data.ioc_types || {}, piIocColors);
+
+        // Timeline bar chart
+        const timeline = data.timeline || [];
+        const tlContainer = document.getElementById('piTimeline');
+        const tlLabels = document.getElementById('piTimelineLabels');
+        if (timeline.length === 0) {
+            tlContainer.innerHTML = '<div style="color:var(--text-secondary);font-size:11px;text-align:center;padding:40px 0">No timeline data</div>';
+            tlLabels.innerHTML = '';
+        } else {
+            const maxCount = Math.max(...timeline.map(t => t.count), 1);
+            tlContainer.innerHTML = timeline.map(t => {
+                const pct = Math.max((t.count / maxCount) * 100, 3);
+                const hourLabel = t.hour.length >= 13 ? t.hour.substring(11, 13) + ':00' : t.hour;
+                return `<div class="pi-timeline-bar" style="height:${pct}%"><div class="pi-tt">${hourLabel} — ${t.count} alert${t.count !== 1 ? 's' : ''}</div></div>`;
+            }).join('');
+            const firstH = timeline[0].hour;
+            const lastH = timeline[timeline.length - 1].hour;
+            tlLabels.innerHTML = `<span>${firstH.length >= 13 ? firstH.substring(5, 13) : firstH}</span><span>${lastH.length >= 13 ? lastH.substring(5, 13) : lastH}</span>`;
+        }
+
+        // Top patterns ranked list
+        const patterns = data.patterns || [];
+        const patList = document.getElementById('piPatternList');
+        document.getElementById('piPatternCount').textContent = patterns.length ? `(${patterns.length})` : '';
+        if (patterns.length === 0) {
+            patList.innerHTML = '<div class="pi-empty"><div class="pi-empty-icon">&#x1F50D;</div>No payload patterns detected yet</div>';
+        } else {
+            const maxPat = patterns[0].count || 1;
+            patList.innerHTML = patterns.slice(0, 20).map((p, i) => {
+                const pct = Math.round((p.count / maxPat) * 100);
+                return `<div class="pi-pattern-item">
+                    <div class="pi-pattern-rank">${i + 1}</div>
+                    <div class="pi-pattern-info">
+                        <div class="pi-pattern-name" title="${esc(p.description || '')}">${esc(p.name)} <span class="badge badge-${p.severity}" style="font-size:9px;padding:1px 5px">${p.severity}</span></div>
+                        <div class="pi-pattern-bar-bg"><div class="pi-pattern-bar" style="width:${pct}%"></div></div>
+                    </div>
+                    <div class="pi-pattern-count">${p.count}</div>
+                </div>`;
+            }).join('');
+        }
+
+        // Recent IOCs feed
+        const iocs = data.recent_iocs || [];
+        const iocFeed = document.getElementById('piIocFeed');
+        document.getElementById('piIocCount').textContent = iocs.length ? `(${iocs.length})` : '';
+        if (iocs.length === 0) {
+            iocFeed.innerHTML = '<div class="pi-empty"><div class="pi-empty-icon">&#x1F517;</div>No IOCs extracted yet</div>';
+        } else {
+            iocFeed.innerHTML = iocs.map(ioc => `<div class="pi-ioc-item">
+                <span class="pi-ioc-type">${esc(ioc.type)}</span>
+                <span class="pi-ioc-val">${esc(ioc.value)}</span>
+                <span class="pi-ioc-time">${formatTime(ioc.timestamp)}</span>
+            </div>`).join('');
+        }
+
+        // Alerts table
+        const alerts = data.recent_alerts || [];
+        const tbody = document.getElementById('piAlertBody');
+        document.getElementById('piAlertCount').textContent = alerts.length ? `(${alerts.length})` : '';
+        tbody.innerHTML = '';
+        alerts.forEach(al => {
+            const tr = document.createElement('tr');
+            const patNames = (al.data?.patterns || []).map(p => p.name).join(', ') || '-';
+            const iocCount = al.data?.iocs ? Object.values(al.data.iocs).reduce((s, a) => s + a.length, 0) : 0;
+            tr.innerHTML = `<td>${formatTime(al.timestamp)}</td><td><span class="badge badge-${al.severity}">${al.severity}</span></td><td><span class="badge badge-${al.service}">${al.service}</span></td><td>${ipHTML(al.src_ip)}</td><td title="${esc(patNames)}" style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${esc(patNames)}</td><td>${iocCount ? '<span class="badge badge-ioc">' + iocCount + ' IOC' + (iocCount > 1 ? 's' : '') + '</span>' : '-'}</td>`;
+            tr.onclick = () => showAlertDetail(al);
+            tbody.appendChild(tr);
+        });
+    } catch(e) { showToast('Failed to load payload intel: ' + e.message, 'error'); }
 }
 
 // ── DATABASE RESET ───────────────────────────────────────────────────────────
@@ -1650,8 +1936,36 @@ function showAlertDetail(al) {
         <tr><td style="padding:4px 12px 4px 0;color:var(--text-secondary)">Event IDs</td><td>${(al.event_ids||[]).join(', ') || 'none'}</td></tr>
     </table>
     <div style="font-size:13px;margin-bottom:8px">${esc(al.message)}</div>`;
+    // Payload/IOC detail sections
+    const d = al.data || {};
+    if (d.patterns && d.patterns.length) {
+        html += `<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px">
+            <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary);margin-bottom:8px">Payload Detections</div>`;
+        d.patterns.forEach(p => {
+            html += `<div style="margin-bottom:4px;font-size:12px"><span class="badge badge-${p.severity}">${p.severity}</span> <strong>${esc(p.name)}</strong> — ${esc(p.description)}</div>`;
+        });
+        html += `</div>`;
+    }
+    if (d.iocs) {
+        const iocTypes = Object.keys(d.iocs);
+        if (iocTypes.length) {
+            html += `<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px">
+                <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary);margin-bottom:8px">Extracted IOCs</div>`;
+            iocTypes.forEach(t => {
+                html += `<div style="margin-bottom:6px"><span style="color:var(--cyan);font-size:11px;font-weight:600">${esc(t.toUpperCase())}</span>
+                    <div style="font-family:monospace;font-size:11px;color:var(--text-primary);background:var(--bg-secondary);padding:6px 10px;border-radius:4px;margin-top:2px;word-break:break-all">${d.iocs[t].map(v => esc(v)).join('<br>')}</div></div>`;
+            });
+            html += `</div>`;
+        }
+    }
+    if (d.command_preview) {
+        html += `<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px">
+            <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary);margin-bottom:8px">Command Preview</div>
+            <pre style="font-size:11px;color:var(--text-primary);background:var(--bg-secondary);padding:10px;border-radius:4px;white-space:pre-wrap;word-break:break-all;max-height:150px;overflow-y:auto">${esc(d.command_preview)}</pre>
+        </div>`;
+    }
     if (!al.acknowledged) {
-        html += `<button class="config-apply" onclick="ackAlert(${al.id});closeModal()">Acknowledge</button>`;
+        html += `<button class="config-apply" style="margin-top:12px" onclick="ackAlert(${al.id});closeModal()">Acknowledge</button>`;
     }
     openModal('Alert Detail', html);
 }
@@ -1820,7 +2134,13 @@ function connectWS() {
         try {
             const msg = JSON.parse(e.data);
             if (msg.type === 'event') { addEvent(msg.data); refreshStats(); }
-            else if (msg.type === 'alert') { addAlert(msg.data); refreshStats(); }
+            else if (msg.type === 'alert') {
+                addAlert(msg.data); refreshStats();
+                if (msg.data.rule_name === 'payload_ioc') {
+                    showToast('New payload/IOC detected from ' + (msg.data.src_ip || '?'));
+                    if (document.getElementById('tab-payloadintel').classList.contains('active')) loadPayloadIntel();
+                }
+            }
             else if (msg.type === 'config_change') { showToast('Config updated by another client'); if (document.getElementById('tab-config').classList.contains('active')) loadConfigTab(); loadActiveHoneypots(); }
             else if (msg.type === 'ip_blocked') {
                 blockedIPs.add(msg.data.ip);
