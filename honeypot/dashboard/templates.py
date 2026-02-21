@@ -402,6 +402,7 @@ body { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: v
     <button class="tab-btn" onclick="switchTab('events')">Events</button>
     <button class="tab-btn" onclick="switchTab('sessions')">Sessions</button>
     <button class="tab-btn" onclick="switchTab('alerts')">Alerts</button>
+    <button class="tab-btn" onclick="switchTab('attackers')">Attackers</button>
     <button class="tab-btn" onclick="switchTab('database')">Database</button>
     <button class="tab-btn" onclick="switchTab('firewall')">Firewall</button>
     <button class="tab-btn" onclick="switchTab('config')">Config</button>
@@ -503,14 +504,35 @@ body { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: v
 
 <!-- ═══════════════════ EVENTS TAB ═══════════════════ -->
 <div id="tab-events" class="tab-content">
-<div class="filter-row">
+<div class="filter-row" style="flex-wrap:wrap">
     <div class="filter-group">
-        <label>Service</label>
-        <select id="evtFilterService"><option value="">All</option><option>ssh</option><option>http</option><option>ftp</option><option>smb</option><option>mysql</option><option>telnet</option><option>smtp</option><option>mongodb</option><option>vnc</option><option>redis</option><option>adb</option></select>
+        <label>Services</label>
+        <div class="checkbox-group" id="evtSvcCheckboxes">
+            <label><input type="checkbox" value="ssh" checked> SSH</label>
+            <label><input type="checkbox" value="http" checked> HTTP</label>
+            <label><input type="checkbox" value="ftp" checked> FTP</label>
+            <label><input type="checkbox" value="smb" checked> SMB</label>
+            <label><input type="checkbox" value="mysql" checked> MySQL</label>
+            <label><input type="checkbox" value="telnet" checked> Telnet</label>
+            <label><input type="checkbox" value="smtp" checked> SMTP</label>
+            <label><input type="checkbox" value="mongodb" checked> MongoDB</label>
+            <label><input type="checkbox" value="vnc" checked> VNC</label>
+            <label><input type="checkbox" value="redis" checked> Redis</label>
+            <label><input type="checkbox" value="adb" checked> ADB</label>
+        </div>
     </div>
     <div class="filter-group">
-        <label>Type</label>
-        <select id="evtFilterType"><option value="">All</option><option>connection</option><option>auth_attempt</option><option>command</option><option>request</option><option>query</option><option>file_transfer</option><option>ntlm_auth</option><option>disconnect</option></select>
+        <label>Types</label>
+        <div class="checkbox-group" id="evtTypeCheckboxes">
+            <label><input type="checkbox" value="connection" checked> connection</label>
+            <label><input type="checkbox" value="auth_attempt" checked> auth</label>
+            <label><input type="checkbox" value="command" checked> command</label>
+            <label><input type="checkbox" value="request" checked> request</label>
+            <label><input type="checkbox" value="query" checked> query</label>
+            <label><input type="checkbox" value="file_transfer" checked> file_transfer</label>
+            <label><input type="checkbox" value="ntlm_auth" checked> ntlm_auth</label>
+            <label><input type="checkbox" value="disconnect" checked> disconnect</label>
+        </div>
     </div>
     <div class="filter-group">
         <label>IP</label>
@@ -535,14 +557,26 @@ body { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: v
 
 <!-- ═══════════════════ SESSIONS TAB ═══════════════════ -->
 <div id="tab-sessions" class="tab-content">
-<div class="filter-row">
+<div class="filter-row" style="flex-wrap:wrap">
     <div class="filter-group">
         <label>IP</label>
         <input type="text" id="sessFilterIP" placeholder="Filter by IP" list="ipList" style="width:140px">
     </div>
     <div class="filter-group">
-        <label>Service</label>
-        <select id="sessFilterService"><option value="">All</option><option>ssh</option><option>http</option><option>ftp</option><option>smb</option><option>mysql</option><option>telnet</option><option>smtp</option><option>mongodb</option><option>vnc</option><option>redis</option><option>adb</option></select>
+        <label>Services</label>
+        <div class="checkbox-group" id="sessSvcCheckboxes">
+            <label><input type="checkbox" value="ssh" checked> SSH</label>
+            <label><input type="checkbox" value="http" checked> HTTP</label>
+            <label><input type="checkbox" value="ftp" checked> FTP</label>
+            <label><input type="checkbox" value="smb" checked> SMB</label>
+            <label><input type="checkbox" value="mysql" checked> MySQL</label>
+            <label><input type="checkbox" value="telnet" checked> Telnet</label>
+            <label><input type="checkbox" value="smtp" checked> SMTP</label>
+            <label><input type="checkbox" value="mongodb" checked> MongoDB</label>
+            <label><input type="checkbox" value="vnc" checked> VNC</label>
+            <label><input type="checkbox" value="redis" checked> Redis</label>
+            <label><input type="checkbox" value="adb" checked> ADB</label>
+        </div>
     </div>
     <button class="filter-btn" onclick="loadSessionsTab()">Apply</button>
 </div>
@@ -563,14 +597,23 @@ body { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: v
 
 <!-- ═══════════════════ ALERTS TAB ═══════════════════ -->
 <div id="tab-alerts" class="tab-content">
-<div class="filter-row">
+<div class="filter-row" style="flex-wrap:wrap">
     <div class="filter-group">
         <label>Severity</label>
-        <select id="alertFilterSev"><option value="">All</option><option>critical</option><option>high</option><option>medium</option><option>low</option></select>
+        <div class="checkbox-group" id="alertSevCheckboxes">
+            <label><input type="checkbox" value="critical" checked> critical</label>
+            <label><input type="checkbox" value="high" checked> high</label>
+            <label><input type="checkbox" value="medium" checked> medium</label>
+            <label><input type="checkbox" value="low" checked> low</label>
+            <label><input type="checkbox" value="info" checked> info</label>
+        </div>
     </div>
     <div class="filter-group">
         <label>Status</label>
-        <select id="alertFilterAck"><option value="">All</option><option value="unacked">Unacknowledged</option><option value="acked">Acknowledged</option></select>
+        <div class="checkbox-group" id="alertStatusCheckboxes">
+            <label><input type="checkbox" value="unacked" checked> Unacknowledged</label>
+            <label><input type="checkbox" value="acked" checked> Acknowledged</label>
+        </div>
     </div>
     <button class="filter-btn" onclick="loadAlertsTab()">Apply</button>
     <button class="filter-btn secondary" onclick="bulkAckAlerts()">Ack All Visible</button>
@@ -582,6 +625,40 @@ body { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: v
     <button onclick="alertPage(-1)" id="alertPrev" disabled>Prev</button>
     <span id="alertPageInfo">Page 1</span>
     <button onclick="alertPage(1)" id="alertNext">Next</button>
+</div>
+</div>
+
+<!-- ═══════════════════ ATTACKERS TAB ═══════════════════ -->
+<div id="tab-attackers" class="tab-content">
+<div class="filter-row">
+    <button class="filter-btn" onclick="loadAttackersTab()">Refresh</button>
+    <button class="filter-btn secondary" onclick="exportTable('attackers','json')">Export JSON</button>
+    <button class="filter-btn secondary" onclick="exportTable('attackers','csv')">Export CSV</button>
+    <span style="margin-left:auto;font-size:11px;color:var(--text-secondary)" id="atkCount">0 attackers</span>
+</div>
+<div class="card">
+    <div class="events-scroll" style="max-height:600px">
+        <table class="event-table" id="atkTable">
+            <thead><tr>
+                <th>IP Address</th>
+                <th>Country</th>
+                <th>City / ISP</th>
+                <th>Services Hit</th>
+                <th>Events</th>
+                <th>Sessions</th>
+                <th>Auth Tries</th>
+                <th>Commands</th>
+                <th>First Seen</th>
+                <th>Last Seen</th>
+            </tr></thead>
+            <tbody id="atkTabBody"></tbody>
+        </table>
+    </div>
+</div>
+<div class="pagination">
+    <button onclick="atkPage(-1)" id="atkPrev" disabled>Prev</button>
+    <span id="atkPageInfo">Page 1</span>
+    <button onclick="atkPage(1)" id="atkNext">Next</button>
 </div>
 </div>
 
@@ -633,7 +710,8 @@ body { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: v
         <input type="text" id="dbFilterSearch" placeholder="Text search in data" style="width:200px">
     </div>
     <button class="filter-btn" onclick="loadDatabaseTab()">Search</button>
-    <button class="filter-btn secondary" onclick="exportDBResults()">Export JSON</button>
+    <button class="filter-btn secondary" onclick="exportDBResults('json')">Export JSON</button>
+    <button class="filter-btn secondary" onclick="exportDBResults('csv')">Export CSV</button>
     <button class="filter-btn danger" onclick="confirmResetDB()">Reset Database</button>
 </div>
 <div class="card">
@@ -750,12 +828,12 @@ function ipHTML(ip) {
 
 function summarize(data) {
     if (!data) return '';
-    if (data.username) { let s = data.username; if (data.password) s += ':' + data.password; return s; }
-    if (data.command) return data.command;
-    if (data.query) return data.query.substring(0, 80);
-    if (data.method) return data.method + ' ' + (data.path || '');
-    if (data.message) return data.message;
-    return JSON.stringify(data).substring(0, 80);
+    if (data.username) { let s = String(data.username); if (data.password) s += ':' + data.password; return s; }
+    if (data.command) return String(data.command);
+    if (data.query) return String(data.query).substring(0, 80);
+    if (data.method) return String(data.method) + ' ' + (data.path || '');
+    if (data.message) return String(data.message);
+    try { return JSON.stringify(data).substring(0, 80); } catch(e) { return ''; }
 }
 
 function threatBadges(data) {
@@ -791,6 +869,7 @@ function switchTab(name) {
     if (name === 'events') loadEventsTab();
     else if (name === 'sessions') loadSessionsTab();
     else if (name === 'alerts') loadAlertsTab();
+    else if (name === 'attackers') loadAttackersTab();
     else if (name === 'database') loadDatabaseTab();
     else if (name === 'firewall') loadFirewallTab();
     else if (name === 'config') loadConfigTab();
@@ -823,8 +902,7 @@ function addOverviewMarker(d) {
 
 async function refreshOverviewMap() {
     try {
-        const r = await fetch('/api/map');
-        const data = await r.json();
+        const data = await apiFetch('/api/map');
         data.forEach(addOverviewMarker);
     } catch(e) {}
 }
@@ -866,8 +944,7 @@ function buildPopupHTML(d) {
 async function refreshFullMap() {
     if (!fullMap) return;
     try {
-        const r = await fetch('/api/map');
-        fullMapData = await r.json();
+        fullMapData = await apiFetch('/api/map');
     } catch(e) { return; }
 
     // Clear old markers
@@ -995,8 +1072,7 @@ function drawDonut(canvasId, legendId, dataMap, colorMap) {
 let stats = {};
 async function refreshStats() {
     try {
-        const r = await fetch('/api/stats');
-        stats = await r.json();
+        stats = await apiFetch('/api/stats');
         document.getElementById('statEvents').textContent = stats.total_events || 0;
         document.getElementById('statSessions').textContent = stats.total_sessions || 0;
         document.getElementById('statIPs').textContent = stats.unique_ips || 0;
@@ -1007,11 +1083,19 @@ async function refreshStats() {
     } catch(e) {}
 }
 
+async function apiFetch(url, opts) {
+    const r = await fetch(url, opts);
+    if (!r.ok) {
+        let msg = r.statusText;
+        try { const d = await r.json(); msg = d.error || msg; } catch(_) {}
+        throw new Error(msg);
+    }
+    return r.json();
+}
+
 async function loadInitial() {
     try {
-        const [evR, alR] = await Promise.all([fetch('/api/events?limit=50'), fetch('/api/alerts?limit=50')]);
-        const events = await evR.json();
-        const alerts = await alR.json();
+        const [events, alerts] = await Promise.all([apiFetch('/api/events?limit=50'), apiFetch('/api/alerts?limit=50')]);
         events.reverse().forEach(addEvent);
         alerts.reverse().forEach(addAlert);
     } catch(e) {}
@@ -1020,8 +1104,7 @@ async function loadInitial() {
 // ── IP autocomplete ──────────────────────────────────────────────────────────
 async function loadIPList() {
     try {
-        const r = await fetch('/api/ips');
-        const ips = await r.json();
+        const ips = await apiFetch('/api/ips');
         const dl = document.getElementById('ipList');
         dl.innerHTML = ips.map(ip => `<option value="${ip}">`).join('');
     } catch(e) {}
@@ -1030,16 +1113,17 @@ async function loadIPList() {
 // ── EVENTS TAB ───────────────────────────────────────────────────────────────
 let evtOffset = 0; const evtLimit = 50;
 async function loadEventsTab() {
-    const svc = document.getElementById('evtFilterService').value;
-    const typ = document.getElementById('evtFilterType').value;
     const ip = document.getElementById('evtFilterIP').value;
+    const svcBoxes = document.querySelectorAll('#evtSvcCheckboxes input:checked');
+    const typeBoxes = document.querySelectorAll('#evtTypeCheckboxes input:checked');
+    const services = Array.from(svcBoxes).map(c => c.value).join(',');
+    const types = Array.from(typeBoxes).map(c => c.value).join(',');
     let url = `/api/events?limit=${evtLimit}&offset=${evtOffset}`;
-    if (svc) url += '&service=' + encodeURIComponent(svc);
-    if (typ) url += '&type=' + encodeURIComponent(typ);
+    if (services) url += '&services=' + encodeURIComponent(services);
+    if (types) url += '&types=' + encodeURIComponent(types);
     if (ip) url += '&ip=' + encodeURIComponent(ip);
     try {
-        const r = await fetch(url);
-        const events = await r.json();
+        const events = await apiFetch(url);
         const tbody = document.getElementById('evtTabBody');
         tbody.innerHTML = '';
         events.forEach(ev => {
@@ -1052,7 +1136,7 @@ async function loadEventsTab() {
         document.getElementById('evtPrev').disabled = evtOffset === 0;
         document.getElementById('evtNext').disabled = events.length < evtLimit;
         document.getElementById('evtPageInfo').textContent = `Page ${Math.floor(evtOffset/evtLimit)+1}`;
-    } catch(e) { showToast('Failed to load events', 'error'); }
+    } catch(e) { showToast('Failed to load events: ' + e.message, 'error'); }
 }
 function evtPage(dir) { evtOffset = Math.max(0, evtOffset + dir * evtLimit); loadEventsTab(); }
 
@@ -1060,13 +1144,13 @@ function evtPage(dir) { evtOffset = Math.max(0, evtOffset + dir * evtLimit); loa
 let sessOffset = 0; const sessLimit = 50;
 async function loadSessionsTab() {
     const ip = document.getElementById('sessFilterIP').value;
-    const svc = document.getElementById('sessFilterService').value;
+    const svcBoxes = document.querySelectorAll('#sessSvcCheckboxes input:checked');
+    const services = Array.from(svcBoxes).map(c => c.value).join(',');
     let url = `/api/sessions?limit=${sessLimit}&offset=${sessOffset}`;
     if (ip) url += '&ip=' + encodeURIComponent(ip);
-    if (svc) url += '&service=' + encodeURIComponent(svc);
+    if (services) url += '&services=' + encodeURIComponent(services);
     try {
-        const r = await fetch(url);
-        const sessions = await r.json();
+        const sessions = await apiFetch(url);
         const tbody = document.getElementById('sessTabBody');
         tbody.innerHTML = '';
         sessions.forEach(s => {
@@ -1078,7 +1162,7 @@ async function loadSessionsTab() {
         document.getElementById('sessPrev').disabled = sessOffset === 0;
         document.getElementById('sessNext').disabled = sessions.length < sessLimit;
         document.getElementById('sessPageInfo').textContent = `Page ${Math.floor(sessOffset/sessLimit)+1}`;
-    } catch(e) { showToast('Failed to load sessions', 'error'); }
+    } catch(e) { showToast('Failed to load sessions: ' + e.message, 'error'); }
 }
 function sessPage(dir) { sessOffset = Math.max(0, sessOffset + dir * sessLimit); loadSessionsTab(); }
 
@@ -1086,15 +1170,18 @@ function sessPage(dir) { sessOffset = Math.max(0, sessOffset + dir * sessLimit);
 let alertOffset = 0; const alertLimit = 50;
 let alertTabData = [];
 async function loadAlertsTab() {
-    const sev = document.getElementById('alertFilterSev').value;
-    const ack = document.getElementById('alertFilterAck').value;
+    const sevBoxes = document.querySelectorAll('#alertSevCheckboxes input:checked');
+    const sevs = new Set(Array.from(sevBoxes).map(c => c.value));
+    const statusBoxes = document.querySelectorAll('#alertStatusCheckboxes input:checked');
+    const statuses = new Set(Array.from(statusBoxes).map(c => c.value));
+    const showUnacked = statuses.has('unacked');
+    const showAcked = statuses.has('acked');
     let url = `/api/alerts?limit=${alertLimit}`;
-    if (ack === 'unacked') url += '&unacknowledged=true';
+    if (showUnacked && !showAcked) url += '&unacknowledged=true';
     try {
-        const r = await fetch(url);
-        let alerts = await r.json();
-        if (sev) alerts = alerts.filter(a => a.severity === sev);
-        if (ack === 'acked') alerts = alerts.filter(a => a.acknowledged);
+        let alerts = await apiFetch(url);
+        if (sevs.size < 5) alerts = alerts.filter(a => sevs.has(a.severity));
+        if (showAcked && !showUnacked) alerts = alerts.filter(a => a.acknowledged);
         alertTabData = alerts;
         const panel = document.getElementById('alertsTabPanel');
         panel.innerHTML = '';
@@ -1108,7 +1195,7 @@ async function loadAlertsTab() {
         document.getElementById('alertPrev').disabled = alertOffset === 0;
         document.getElementById('alertNext').disabled = alerts.length < alertLimit;
         document.getElementById('alertPageInfo').textContent = `Page ${Math.floor(alertOffset/alertLimit)+1}`;
-    } catch(e) { showToast('Failed to load alerts', 'error'); }
+    } catch(e) { showToast('Failed to load alerts: ' + e.message, 'error'); }
 }
 function alertPage(dir) { alertOffset = Math.max(0, alertOffset + dir * alertLimit); loadAlertsTab(); }
 
@@ -1147,8 +1234,7 @@ async function loadDatabaseTab() {
     if (to) url += '&to=' + encodeURIComponent(new Date(to).toISOString());
 
     try {
-        const r = await fetch(url);
-        const data = await r.json();
+        const data = await apiFetch(url);
         dbResults = data.events || [];
         dbTotal = data.total || 0;
         renderDBTable();
@@ -1156,7 +1242,7 @@ async function loadDatabaseTab() {
         document.getElementById('dbPrev').disabled = dbOffset === 0;
         document.getElementById('dbNext').disabled = dbOffset + dbLimit >= dbTotal;
         document.getElementById('dbPageInfo').textContent = `Page ${Math.floor(dbOffset/dbLimit)+1} of ${Math.max(1, Math.ceil(dbTotal/dbLimit))}`;
-    } catch(e) { showToast('Database query failed', 'error'); }
+    } catch(e) { showToast('Database query failed: ' + e.message, 'error'); }
 }
 
 function renderDBTable() {
@@ -1174,13 +1260,68 @@ function renderDBTable() {
 function dbSort(col) { dbSortCol = col; loadDatabaseTab(); }
 function dbPage(dir) { dbOffset = Math.max(0, dbOffset + dir * dbLimit); loadDatabaseTab(); }
 
-function exportDBResults() {
-    const blob = new Blob([JSON.stringify(dbResults, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'honeypot_export.json'; a.click();
-    URL.revokeObjectURL(url);
-    showToast('Exported ' + dbResults.length + ' events');
+function exportDBResults(fmt) {
+    fmt = fmt || 'json';
+    window.location.href = '/api/export?table=events&format=' + fmt;
+    showToast('Downloading events (' + fmt.toUpperCase() + ')...');
+}
+function exportTable(table, fmt) {
+    fmt = fmt || 'json';
+    window.location.href = '/api/export?table=' + encodeURIComponent(table) + '&format=' + fmt;
+    showToast('Downloading ' + table + ' (' + fmt.toUpperCase() + ')...');
+}
+
+// ── ATTACKERS TAB ────────────────────────────────────────────────────────────
+let atkOffset = 0; const atkLimit = 50; let atkData = []; let atkTotal = 0;
+
+async function loadAttackersTab() {
+    try {
+        const data = await apiFetch(`/api/attackers?limit=${atkLimit}&offset=${atkOffset}`);
+        atkData = data.attackers || [];
+        atkTotal = data.total || 0;
+        document.getElementById('atkCount').textContent = `${atkTotal} attackers`;
+        const tbody = document.getElementById('atkTabBody');
+        tbody.innerHTML = '';
+        atkData.forEach(a => {
+            const tr = document.createElement('tr');
+            const svcs = (a.services||[]).map(s => `<span class="badge badge-${s}">${s}</span>`).join(' ');
+            const flag = a.country_code ? a.country_code : '';
+            tr.innerHTML = `<td>${ipHTML(a.ip)}</td><td title="${esc(a.country)}">${flag ? flag + ' ' : ''}${esc(a.country)}</td><td title="${esc(a.isp)}">${esc(a.city||'')}${a.city&&a.isp?' / ':''}${esc(a.isp||'')}</td><td>${svcs}</td><td style="font-weight:700;color:var(--accent)">${a.event_count}</td><td>${a.session_count}</td><td style="color:${a.auth_attempts>0?'var(--red)':'var(--text-secondary)'}">${a.auth_attempts}</td><td style="color:${a.commands>0?'var(--red)':'var(--text-secondary)'}">${a.commands}</td><td>${formatDateTime(a.first_seen)}</td><td>${formatDateTime(a.last_seen)}</td>`;
+            tr.onclick = () => showAttackerDetail(a);
+            tbody.appendChild(tr);
+        });
+        document.getElementById('atkPrev').disabled = atkOffset === 0;
+        document.getElementById('atkNext').disabled = atkOffset + atkLimit >= atkTotal;
+        document.getElementById('atkPageInfo').textContent = `Page ${Math.floor(atkOffset/atkLimit)+1} of ${Math.max(1, Math.ceil(atkTotal/atkLimit))}`;
+    } catch(e) { showToast('Failed to load attackers: ' + e.message, 'error'); }
+}
+function atkPage(dir) { atkOffset = Math.max(0, atkOffset + dir * atkLimit); loadAttackersTab(); }
+
+function showAttackerDetail(a) {
+    const svcs = (a.services||[]).map(s => `<span class="badge badge-${s}">${s}</span>`).join(' ');
+    let html = `
+    <table style="font-size:12px;margin-bottom:16px;width:100%">
+        <tr><td style="padding:4px 12px 4px 0;color:var(--text-secondary)">IP Address</td><td style="color:var(--accent);font-weight:700;font-size:14px">${esc(a.ip)}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:var(--text-secondary)">Location</td><td>${esc(a.country)}${a.city?' / '+esc(a.city):''}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:var(--text-secondary)">ISP / Org</td><td>${esc(a.isp||'-')}${a.org&&a.org!==a.isp?' / '+esc(a.org):''}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:var(--text-secondary)">AS Number</td><td>${esc(a.as_number||'-')}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:var(--text-secondary)">Services</td><td>${svcs||'-'}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:var(--text-secondary)">Total Events</td><td style="font-weight:700">${a.event_count}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:var(--text-secondary)">Sessions</td><td>${a.session_count}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:var(--text-secondary)">Auth Attempts</td><td style="color:${a.auth_attempts>0?'var(--red)':'inherit'}">${a.auth_attempts}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:var(--text-secondary)">Commands Exec</td><td style="color:${a.commands>0?'var(--red)':'inherit'}">${a.commands}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:var(--text-secondary)">First Seen</td><td>${formatDateTime(a.first_seen)}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:var(--text-secondary)">Last Seen</td><td>${formatDateTime(a.last_seen)}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:var(--text-secondary)">Coordinates</td><td>${a.lat||'?'}, ${a.lon||'?'}</td></tr>
+    </table>
+    <div style="display:flex;gap:8px">
+        <button class="config-apply" onclick="filterByIP('${esc(a.ip)}')" style="background:var(--accent)">View Events</button>
+        ${blockedIPs.has(a.ip)
+            ? `<button class="config-apply" style="background:var(--green)" onclick="unblockIP('${esc(a.ip)}');closeModal()">Unblock IP</button>`
+            : `<button class="config-apply" style="background:var(--red)" onclick="blockIP('${esc(a.ip)}');closeModal()">Block IP</button>`
+        }
+    </div>`;
+    openModal('Attacker Profile: ' + a.ip, html);
 }
 
 // ── DATABASE RESET ───────────────────────────────────────────────────────────
@@ -1237,8 +1378,7 @@ let _cfgPresets = {};
 
 async function loadConfigTab() {
     try {
-        const r = await fetch('/api/config/full');
-        const data = await r.json();
+        const data = await apiFetch('/api/config/full');
         _cfgSchema = data._extra_schema || {};
         _cfgPresets = data._banner_presets || {};
 
@@ -1475,8 +1615,7 @@ async function showSessionDetail(s) {
     <div class="timeline" id="sessionTimeline"><div style="color:var(--text-secondary);font-size:12px">Loading...</div></div>`;
     openModal('Session Detail', html);
     try {
-        const r = await fetch('/api/sessions/' + s.id + '/events');
-        const events = await r.json();
+        const events = await apiFetch('/api/sessions/' + s.id + '/events');
         const tl = document.getElementById('sessionTimeline');
         if (events.length === 0) { tl.innerHTML = '<div style="color:var(--text-secondary);font-size:12px">No events found</div>'; return; }
         tl.innerHTML = events.map(ev => `<div class="timeline-item">
@@ -1490,12 +1629,11 @@ async function showSessionDetail(s) {
 async function loadSessionById(sid) {
     closeModal();
     try {
-        const r = await fetch('/api/sessions?limit=1000');
-        const sessions = await r.json();
+        const sessions = await apiFetch('/api/sessions?limit=1000');
         const s = sessions.find(x => x.id === sid);
         if (s) showSessionDetail(s);
         else showToast('Session not found', 'error');
-    } catch(e) { showToast('Failed to load session', 'error'); }
+    } catch(e) { showToast('Failed to load session: ' + e.message, 'error'); }
 }
 
 function showAlertDetail(al) {
@@ -1603,8 +1741,7 @@ function filterByIP(ip) {
 async function lookupGeo(ip) {
     document.getElementById('ipPopover').style.display = 'none';
     try {
-        const r = await fetch('/api/geo/' + encodeURIComponent(ip));
-        const geo = await r.json();
+        const geo = await apiFetch('/api/geo/' + encodeURIComponent(ip));
         openModal('Geo Lookup: ' + ip, `
             <table style="font-size:12px;width:100%">
                 <tr><td style="padding:4px 12px 4px 0;color:var(--text-secondary)">IP</td><td style="color:var(--accent);font-weight:700">${esc(ip)}</td></tr>
@@ -1626,8 +1763,7 @@ async function lookupGeo(ip) {
 // ── FIREWALL TAB ─────────────────────────────────────────────────────────────
 async function loadFirewallTab() {
     try {
-        const r = await fetch('/api/firewall/blocked');
-        const data = await r.json();
+        const data = await apiFetch('/api/firewall/blocked');
         blockedIPs = new Set(data.blocked || []);
         refreshBlockedIPStyles();
 
@@ -1666,8 +1802,7 @@ async function manualBlockIP() {
 // Load blocked IPs on init
 async function loadBlockedIPs() {
     try {
-        const r = await fetch('/api/firewall/blocked');
-        const data = await r.json();
+        const data = await apiFetch('/api/firewall/blocked');
         blockedIPs = new Set(data.blocked || []);
     } catch(e) {}
 }
@@ -1710,8 +1845,7 @@ function connectWS() {
 // ── Active Honeypots Blobs ────────────────────────────────────────────────────
 async function loadActiveHoneypots() {
     try {
-        const r = await fetch('/api/config');
-        const config = await r.json();
+        const config = await apiFetch('/api/config');
         const container = document.getElementById('activeHoneypots');
         if (!container) return;
         const svcOrder = ['ssh','http','ftp','smb','mysql','telnet','smtp','mongodb','vnc','redis','adb'];

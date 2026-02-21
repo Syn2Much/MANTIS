@@ -1,6 +1,8 @@
 """Dashboard REST API and WebSocket server using aiohttp."""
 
 import asyncio
+import csv
+import io
 import json
 import logging
 import shutil
@@ -55,6 +57,8 @@ class DashboardServer:
         self._app.router.add_get("/api/ips", self._handle_ips)
         self._app.router.add_get("/api/sessions/{id}/events", self._handle_session_events)
         self._app.router.add_post("/api/database/reset", self._handle_database_reset)
+        self._app.router.add_get("/api/attackers", self._handle_attackers)
+        self._app.router.add_get("/api/export", self._handle_export)
         self._app.router.add_get("/api/firewall/blocked", self._handle_get_blocked)
         self._app.router.add_post("/api/firewall/block", self._handle_block_ip)
         self._app.router.add_post("/api/firewall/unblock", self._handle_unblock_ip)
@@ -183,76 +187,114 @@ class DashboardServer:
         return ws
 
     async def _handle_stats(self, request: web.Request) -> web.Response:
-        data = await self._db.get_stats()
-        return web.json_response(data)
+        try:
+            data = await self._db.get_stats()
+            return web.json_response(data)
+        except Exception as e:
+            logger.exception("Stats query failed")
+            return web.json_response({"error": str(e)}, status=500)
 
     async def _handle_events(self, request: web.Request) -> web.Response:
-        limit = min(int(request.query.get("limit", 100)), 1000)
-        offset = int(request.query.get("offset", 0))
-        service = request.query.get("service")
-        event_type = request.query.get("type")
-        src_ip = request.query.get("ip")
-        paginated = request.query.get("paginated", "").lower() in ("1", "true")
-        # Multi-value filters
-        services_param = request.query.get("services")
-        services = [s.strip() for s in services_param.split(",")] if services_param else None
-        types_param = request.query.get("types")
-        event_types = [t.strip() for t in types_param.split(",")] if types_param else None
-        search = request.query.get("search")
-        time_from = request.query.get("from")
-        time_to = request.query.get("to")
-        data = await self._db.get_events(
-            limit=limit, offset=offset, service=service,
-            event_type=event_type, src_ip=src_ip,
-            services=services, event_types=event_types,
-            search=search, time_from=time_from, time_to=time_to,
-            paginated=paginated,
-        )
-        return web.json_response(data)
+        try:
+            limit = min(int(request.query.get("limit", 100)), 1000)
+            offset = int(request.query.get("offset", 0))
+            service = request.query.get("service")
+            event_type = request.query.get("type")
+            src_ip = request.query.get("ip")
+            paginated = request.query.get("paginated", "").lower() in ("1", "true")
+            services_param = request.query.get("services")
+            services = [s.strip() for s in services_param.split(",")] if services_param else None
+            types_param = request.query.get("types")
+            event_types = [t.strip() for t in types_param.split(",")] if types_param else None
+            search = request.query.get("search")
+            time_from = request.query.get("from")
+            time_to = request.query.get("to")
+            data = await self._db.get_events(
+                limit=limit, offset=offset, service=service,
+                event_type=event_type, src_ip=src_ip,
+                services=services, event_types=event_types,
+                search=search, time_from=time_from, time_to=time_to,
+                paginated=paginated,
+            )
+            return web.json_response(data)
+        except Exception as e:
+            logger.exception("Events query failed")
+            return web.json_response({"error": str(e)}, status=500)
 
     async def _handle_sessions(self, request: web.Request) -> web.Response:
-        limit = min(int(request.query.get("limit", 100)), 1000)
-        offset = int(request.query.get("offset", 0))
-        src_ip = request.query.get("ip")
-        service = request.query.get("service")
-        paginated = request.query.get("paginated", "").lower() in ("1", "true")
-        data = await self._db.get_sessions(
-            limit=limit, offset=offset,
-            src_ip=src_ip, service=service,
-            paginated=paginated,
-        )
-        return web.json_response(data)
+        try:
+            limit = min(int(request.query.get("limit", 100)), 1000)
+            offset = int(request.query.get("offset", 0))
+            src_ip = request.query.get("ip")
+            service = request.query.get("service")
+            services_param = request.query.get("services")
+            services = [s.strip() for s in services_param.split(",")] if services_param else None
+            paginated = request.query.get("paginated", "").lower() in ("1", "true")
+            data = await self._db.get_sessions(
+                limit=limit, offset=offset,
+                src_ip=src_ip, service=service,
+                services=services,
+                paginated=paginated,
+            )
+            return web.json_response(data)
+        except Exception as e:
+            logger.exception("Sessions query failed")
+            return web.json_response({"error": str(e)}, status=500)
 
     async def _handle_alerts(self, request: web.Request) -> web.Response:
-        limit = min(int(request.query.get("limit", 100)), 1000)
-        unacked = request.query.get("unacknowledged", "").lower() in ("1", "true", "yes")
-        data = await self._db.get_alerts(limit=limit, unacknowledged_only=unacked)
-        return web.json_response(data)
+        try:
+            limit = min(int(request.query.get("limit", 100)), 1000)
+            unacked = request.query.get("unacknowledged", "").lower() in ("1", "true", "yes")
+            data = await self._db.get_alerts(limit=limit, unacknowledged_only=unacked)
+            return web.json_response(data)
+        except Exception as e:
+            logger.exception("Alerts query failed")
+            return web.json_response({"error": str(e)}, status=500)
 
     async def _handle_ack_alert(self, request: web.Request) -> web.Response:
-        alert_id = int(request.match_info["id"])
-        await self._db.acknowledge_alert(alert_id)
-        return web.json_response({"status": "ok"})
+        try:
+            alert_id = int(request.match_info["id"])
+            await self._db.acknowledge_alert(alert_id)
+            return web.json_response({"status": "ok"})
+        except Exception as e:
+            logger.exception("Alert ack failed")
+            return web.json_response({"error": str(e)}, status=500)
 
     async def _handle_geo(self, request: web.Request) -> web.Response:
-        ip = request.match_info["ip"]
-        geo = await self._geo.lookup(ip)
-        return web.json_response(geo.to_dict())
+        try:
+            ip = request.match_info["ip"]
+            geo = await self._geo.lookup(ip)
+            return web.json_response(geo.to_dict())
+        except Exception as e:
+            logger.exception("Geo lookup failed")
+            return web.json_response({"error": str(e)}, status=500)
 
     async def _handle_map(self, request: web.Request) -> web.Response:
-        data = await self._db.get_map_data()
-        return web.json_response(data)
+        try:
+            data = await self._db.get_map_data()
+            return web.json_response(data)
+        except Exception as e:
+            logger.exception("Map query failed")
+            return web.json_response({"error": str(e)}, status=500)
 
     async def _handle_get_config(self, request: web.Request) -> web.Response:
-        if self._orchestrator is None:
-            return web.json_response({"error": "orchestrator not available"}, status=500)
-        return web.json_response(self._orchestrator.get_config_dict())
+        try:
+            if self._orchestrator is None:
+                return web.json_response({"error": "orchestrator not available"}, status=500)
+            return web.json_response(self._orchestrator.get_config_dict())
+        except Exception as e:
+            logger.exception("Config query failed")
+            return web.json_response({"error": str(e)}, status=500)
 
     async def _handle_get_full_config(self, request: web.Request) -> web.Response:
         """Return config + extra schema + banner presets for the config UI."""
-        if self._orchestrator is None:
-            return web.json_response({"error": "orchestrator not available"}, status=500)
-        return web.json_response(self._orchestrator.get_full_config_dict())
+        try:
+            if self._orchestrator is None:
+                return web.json_response({"error": "orchestrator not available"}, status=500)
+            return web.json_response(self._orchestrator.get_full_config_dict())
+        except Exception as e:
+            logger.exception("Full config query failed")
+            return web.json_response({"error": str(e)}, status=500)
 
     async def _handle_update_service_config(self, request: web.Request) -> web.Response:
         if self._orchestrator is None:
@@ -331,29 +373,87 @@ class DashboardServer:
         )
 
     async def _handle_ips(self, request: web.Request) -> web.Response:
-        ips = await self._db.get_unique_ips()
-        return web.json_response(ips)
+        try:
+            ips = await self._db.get_unique_ips()
+            return web.json_response(ips)
+        except Exception as e:
+            logger.exception("IPs query failed")
+            return web.json_response({"error": str(e)}, status=500)
 
     async def _handle_session_events(self, request: web.Request) -> web.Response:
-        session_id = request.match_info["id"]
-        events = await self._db.get_events_for_session(session_id)
-        return web.json_response(events)
+        try:
+            session_id = request.match_info["id"]
+            events = await self._db.get_events_for_session(session_id)
+            return web.json_response(events)
+        except Exception as e:
+            logger.exception("Session events query failed")
+            return web.json_response({"error": str(e)}, status=500)
 
     async def _handle_database_reset(self, request: web.Request) -> web.Response:
         if self._orchestrator is None:
             return web.json_response({"error": "orchestrator not available"}, status=500)
-        await self._orchestrator.reset_database()
-        # Broadcast reset to WebSocket clients
-        msg = json.dumps({"type": "database_reset"})
-        dead = []
-        for ws in self._websockets:
-            try:
-                await ws.send_str(msg)
-            except Exception:
-                dead.append(ws)
-        for ws in dead:
-            self._websockets.discard(ws)
-        return web.json_response({"status": "ok", "message": "Database reset complete"})
+        try:
+            await self._orchestrator.reset_database()
+            msg = json.dumps({"type": "database_reset"})
+            dead = []
+            for ws in self._websockets:
+                try:
+                    await ws.send_str(msg)
+                except Exception:
+                    dead.append(ws)
+            for ws in dead:
+                self._websockets.discard(ws)
+            return web.json_response({"status": "ok", "message": "Database reset complete"})
+        except Exception as e:
+            logger.exception("Database reset failed")
+            return web.json_response({"error": str(e)}, status=500)
+
+    # ── Attackers & Export ─────────────────────────────────────────────────
+
+    async def _handle_attackers(self, request: web.Request) -> web.Response:
+        try:
+            limit = min(int(request.query.get("limit", 100)), 1000)
+            offset = int(request.query.get("offset", 0))
+            data = await self._db.get_attackers(limit=limit, offset=offset)
+            return web.json_response(data)
+        except Exception as e:
+            logger.exception("Attackers query failed")
+            return web.json_response({"error": str(e)}, status=500)
+
+    async def _handle_export(self, request: web.Request) -> web.Response:
+        """Export full database as JSON or CSV download."""
+        try:
+            table = request.query.get("table", "events")
+            fmt = request.query.get("format", "json")
+            if table not in ("events", "sessions", "alerts", "attackers"):
+                return web.json_response({"error": "invalid table"}, status=400)
+            data = await self._db.export_all(table)
+            if fmt == "csv":
+                output = io.StringIO()
+                if data:
+                    flat_rows = []
+                    for row in data:
+                        flat = {}
+                        for k, v in row.items():
+                            flat[k] = json.dumps(v) if isinstance(v, (dict, list)) else v
+                        flat_rows.append(flat)
+                    writer = csv.DictWriter(output, fieldnames=flat_rows[0].keys())
+                    writer.writeheader()
+                    writer.writerows(flat_rows)
+                csv_str = output.getvalue()
+                return web.Response(
+                    text=csv_str,
+                    content_type="text/csv",
+                    headers={"Content-Disposition": f"attachment; filename=mantis_{table}.csv"},
+                )
+            return web.Response(
+                text=json.dumps(data, indent=2),
+                content_type="application/json",
+                headers={"Content-Disposition": f"attachment; filename=mantis_{table}.json"},
+            )
+        except Exception as e:
+            logger.exception("Export failed")
+            return web.json_response({"error": str(e)}, status=500)
 
     # ── Firewall / IP blocking ────────────────────────────────────────────
 

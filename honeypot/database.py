@@ -290,7 +290,10 @@ class Database:
         result = []
         for row in rows:
             d = dict(row)
-            d["data"] = json.loads(d["data"])
+            try:
+                d["data"] = json.loads(d["data"]) if d.get("data") else {}
+            except (json.JSONDecodeError, TypeError):
+                d["data"] = {"_raw": str(d.get("data", ""))}
             result.append(d)
 
         if paginated:
@@ -304,6 +307,7 @@ class Database:
 
     def _get_sessions(self, limit: int = 100, offset: int = 0,
                       src_ip: str = None, service: str = None,
+                      services: list = None,
                       paginated: bool = False) -> list[dict] | dict:
         conn = self._get_conn()
         query = "SELECT * FROM sessions WHERE 1=1"
@@ -320,13 +324,22 @@ class Database:
             count_query += " AND service = ?"
             params.append(service)
             count_params.append(service)
+        if services:
+            placeholders = ",".join("?" for _ in services)
+            query += f" AND service IN ({placeholders})"
+            count_query += f" AND service IN ({placeholders})"
+            params.extend(services)
+            count_params.extend(services)
         query += " ORDER BY started_at DESC LIMIT ? OFFSET ?"
         params.extend([limit, offset])
         rows = conn.execute(query, params).fetchall()
         result = []
         for row in rows:
             d = dict(row)
-            d["metadata"] = json.loads(d["metadata"])
+            try:
+                d["metadata"] = json.loads(d["metadata"]) if d.get("metadata") else {}
+            except (json.JSONDecodeError, TypeError):
+                d["metadata"] = {}
             result.append(d)
 
         if paginated:
@@ -355,7 +368,10 @@ class Database:
         result = []
         for row in rows:
             d = dict(row)
-            d["data"] = json.loads(d["data"])
+            try:
+                d["data"] = json.loads(d["data"]) if d.get("data") else {}
+            except (json.JSONDecodeError, TypeError):
+                d["data"] = {"_raw": str(d.get("data", ""))}
             result.append(d)
         return result
 
@@ -374,7 +390,10 @@ class Database:
         result = []
         for row in rows:
             d = dict(row)
-            d["event_ids"] = json.loads(d["event_ids"])
+            try:
+                d["event_ids"] = json.loads(d["event_ids"]) if d.get("event_ids") else []
+            except (json.JSONDecodeError, TypeError):
+                d["event_ids"] = []
             d["acknowledged"] = bool(d["acknowledged"])
             result.append(d)
         return result
@@ -444,7 +463,10 @@ class Database:
         result = []
         for row in rows:
             d = dict(row)
-            d["data"] = json.loads(d["data"])
+            try:
+                d["data"] = json.loads(d["data"]) if d.get("data") else {}
+            except (json.JSONDecodeError, TypeError):
+                d["data"] = {"_raw": str(d.get("data", ""))}
             result.append(d)
         return result
 
@@ -452,6 +474,98 @@ class Database:
         return await self._loop.run_in_executor(
             self._executor, self._get_events_for_ip_window, ip, window_seconds
         )
+
+    def _get_attackers(self, limit: int = 100, offset: int = 0) -> dict:
+        """Aggregate attacker profiles: IP, geo, services hit, event counts, timespan."""
+        conn = self._get_conn()
+        query = """
+            SELECT e.src_ip,
+                   COUNT(e.id) as event_count,
+                   COUNT(DISTINCT e.session_id) as session_count,
+                   COUNT(DISTINCT e.service) as service_count,
+                   GROUP_CONCAT(DISTINCT e.service) as services,
+                   MIN(e.timestamp) as first_seen,
+                   MAX(e.timestamp) as last_seen,
+                   SUM(CASE WHEN e.event_type = 'auth_attempt' THEN 1 ELSE 0 END) as auth_attempts,
+                   SUM(CASE WHEN e.event_type = 'command' THEN 1 ELSE 0 END) as commands,
+                   g.country, g.country_code, g.city, g.isp, g.org, g.as_number, g.lat, g.lon
+            FROM events e
+            LEFT JOIN geo_cache g ON e.src_ip = g.ip
+            GROUP BY e.src_ip
+            ORDER BY event_count DESC
+            LIMIT ? OFFSET ?
+        """
+        rows = conn.execute(query, (limit, offset)).fetchall()
+        total = conn.execute("SELECT COUNT(DISTINCT src_ip) FROM events").fetchone()[0]
+        attackers = []
+        for row in rows:
+            attackers.append({
+                "ip": row["src_ip"],
+                "event_count": row["event_count"],
+                "session_count": row["session_count"],
+                "service_count": row["service_count"],
+                "services": row["services"].split(",") if row["services"] else [],
+                "first_seen": row["first_seen"],
+                "last_seen": row["last_seen"],
+                "auth_attempts": row["auth_attempts"],
+                "commands": row["commands"],
+                "country": row["country"] or "Unknown",
+                "country_code": row["country_code"] or "",
+                "city": row["city"] or "",
+                "isp": row["isp"] or "",
+                "org": row["org"] or "",
+                "as_number": row["as_number"] or "",
+                "lat": row["lat"] or 0,
+                "lon": row["lon"] or 0,
+            })
+        return {"attackers": attackers, "total": total}
+
+    async def get_attackers(self, **kwargs) -> dict:
+        return await self._loop.run_in_executor(self._executor, lambda: self._get_attackers(**kwargs))
+
+    def _export_all(self, table: str = "events") -> list[dict]:
+        """Export all rows from a table for full data dump."""
+        conn = self._get_conn()
+        if table == "events":
+            rows = conn.execute("SELECT * FROM events ORDER BY id DESC").fetchall()
+            result = []
+            for row in rows:
+                d = dict(row)
+                try:
+                    d["data"] = json.loads(d["data"]) if d.get("data") else {}
+                except (json.JSONDecodeError, TypeError):
+                    d["data"] = {"_raw": str(d.get("data", ""))}
+                result.append(d)
+            return result
+        elif table == "sessions":
+            rows = conn.execute("SELECT * FROM sessions ORDER BY started_at DESC").fetchall()
+            result = []
+            for row in rows:
+                d = dict(row)
+                try:
+                    d["metadata"] = json.loads(d["metadata"]) if d.get("metadata") else {}
+                except (json.JSONDecodeError, TypeError):
+                    d["metadata"] = {}
+                result.append(d)
+            return result
+        elif table == "alerts":
+            rows = conn.execute("SELECT * FROM alerts ORDER BY id DESC").fetchall()
+            result = []
+            for row in rows:
+                d = dict(row)
+                try:
+                    d["event_ids"] = json.loads(d["event_ids"]) if d.get("event_ids") else []
+                except (json.JSONDecodeError, TypeError):
+                    d["event_ids"] = []
+                d["acknowledged"] = bool(d["acknowledged"])
+                result.append(d)
+            return result
+        elif table == "attackers":
+            return self._get_attackers(limit=100000, offset=0)["attackers"]
+        return []
+
+    async def export_all(self, table: str = "events") -> list[dict]:
+        return await self._loop.run_in_executor(self._executor, self._export_all, table)
 
     def _reset(self):
         conn = self._get_conn()

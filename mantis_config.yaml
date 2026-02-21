@@ -1,0 +1,58 @@
+ssh:
+  enabled: true
+  port: 2222
+  banner: SSH-2.0-OpenSSH_8.9p1 Ubuntu-3ubuntu0.6
+http:
+  enabled: false
+  port: 8080
+  banner: ''
+  page_title: Admin Portal - Login
+  company_name: Infrastructure Systems
+ftp:
+  enabled: true
+  port: 21
+  banner: 220 FTP Server ready.
+smb:
+  enabled: true
+  port: 4450
+  banner: ''
+mysql:
+  enabled: true
+  port: 3306
+  banner: 5.7.42-0ubuntu0.18.04.1
+telnet:
+  enabled: true
+  port: 2323
+  banner: 'gateway-01 login: '
+  additional_ports:
+  - 23
+smtp:
+  enabled: true
+  port: 25
+  banner: 220 mail.example.com ESMTP Postfix (Ubuntu)
+mongodb:
+  enabled: true
+  port: 27017
+  banner: 6.0.12
+vnc:
+  enabled: true
+  port: 5900
+  banner: prod-workstation:0
+redis:
+  enabled: true
+  port: 6379
+  banner: ''
+adb:
+  enabled: true
+  port: 5555
+  banner: device::Pixel 7
+dashboard:
+  enabled: true
+  host: 0.0.0.0
+  port: 8843
+alerts:
+  enabled: true
+  webhook_url: null
+  webhook_headers: {}
+database_path: honeypot.db
+log_level: INFO
